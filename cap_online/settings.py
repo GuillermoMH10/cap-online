@@ -12,19 +12,22 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+# =========================
 # SECURITY
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY",
-    "django-insecure-=v%3p6*mx7e!%5bzfs$_h7vom#x(o3um11jl18n-(7+1dgn66x"
-)
+# =========================
+SECRET_KEY = os.environ.get("SECRET_KEY")
+
+# En local puede funcionar sin variable, pero en producción debe existir
+if not SECRET_KEY:
+    SECRET_KEY = "dev-only-change-this-in-production"
 
 DEBUG = os.environ.get("DEBUG", "True") == "True"
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
-    "10.36.189.42",
-    ".onrender.com",
+    "192.168.0.8",
+    "10.36.189.27",
 ]
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
@@ -36,13 +39,17 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://10.36.189.42:8000",
     "https://cap-online.onrender.com",
+    "http://192.168.0.8:8000",
+    "http://10.36.189.27:8000",
 ]
 
 if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 
 
-# Application definition
+# =========================
+# APPLICATION DEFINITION
+# =========================
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -84,23 +91,37 @@ TEMPLATES = [
 WSGI_APPLICATION = 'cap_online.wsgi.application'
 
 
+# =========================
+# DATABASE
+# =========================
 # Database
-DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-        ssl_require=False,
-    )
-}
+if DEBUG:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+else:
+    DATABASES = {
+        "default": dj_database_url.config(
+            conn_max_age=600,
+            ssl_require=True,
+        )
+    }
 
-
-# Password validation
+# =========================
+# PASSWORD VALIDATION
+# =========================
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        }
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -111,14 +132,18 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+# =========================
+# INTERNATIONALIZATION
+# =========================
+LANGUAGE_CODE = 'es-mx'
+TIME_ZONE = 'America/Monterrey'
 USE_I18N = True
 USE_TZ = True
 
 
-# Static files
+# =========================
+# STATIC FILES
+# =========================
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
@@ -129,16 +154,57 @@ STATICFILES_DIRS = [
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
-# Media
+# =========================
+# MEDIA
+# =========================
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 
-# Auth redirects
+# =========================
+# AUTH REDIRECTS
+# =========================
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "portal_dashboard"
 LOGOUT_REDIRECT_URL = "landing"
 
 
+<<<<<<< HEAD
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+=======
+# =========================
+# SESSION / COOKIES / SECURITY HEADERS
+# =========================
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 1800  # 30 minutos
+SESSION_SAVE_EVERY_REQUEST = True
+
+X_FRAME_OPTIONS = "DENY"
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# Solo activar estas medidas cuando DEBUG = False
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+else:
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SECURE_SSL_REDIRECT = False
+
+
+# =========================
+# DEFAULT PRIMARY KEY
+# =========================
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+>>>>>>> 6eb3285 (Ajustes finales settings entorno local y producción)

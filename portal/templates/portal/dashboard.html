@@ -4,6 +4,31 @@
 {% block page_title %}Inicio{% endblock %}
 
 {% block content %}
+
+<style>
+/* ── Responsive para esta página ── */
+@media (max-width: 768px) {
+  /* Grids de 2+ cols → 1 col */
+  [style*="grid-template-columns"],
+  .grid, .cards-grid, .stats-grid, .two-col, .dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Tablas → scroll horizontal */
+  table { display: block; overflow-x: auto; white-space: nowrap; width: 100%; }
+  /* Flex rows → column */
+  .row, .flex-row { flex-direction: column !important; }
+  /* Padding reducido en cards */
+  .card { padding: 12px !important; }
+  /* Texto más pequeño en títulos */
+  h2 { font-size: 1.4rem !important; }
+  h3 { font-size: 1.15rem !important; }
+}
+@media (max-width: 480px) {
+  .card { padding: 10px 10px !important; border-radius: 10px !important; }
+  h2 { font-size: 1.2rem !important; }
+}
+</style>
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap');
 
