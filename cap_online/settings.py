@@ -12,9 +12,7 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# =========================
-# SECURITY
-# =========================
+
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # En local puede funcionar sin variable, pero en producción debe existir
@@ -47,9 +45,7 @@ if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 
 
-# =========================
-# APPLICATION DEFINITION
-# =========================
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -91,9 +87,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'cap_online.wsgi.application'
 
 
-# =========================
-# DATABASE
-# =========================
+
 # Database
 if DEBUG:
     DATABASES = {
@@ -110,9 +104,7 @@ else:
         )
     }
 
-# =========================
-# PASSWORD VALIDATION
-# =========================
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -132,18 +124,14 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# =========================
-# INTERNATIONALIZATION
-# =========================
+
 LANGUAGE_CODE = 'es-mx'
 TIME_ZONE = 'America/Monterrey'
 USE_I18N = True
 USE_TZ = True
 
 
-# =========================
-# STATIC FILES
-# =========================
+
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
@@ -154,28 +142,22 @@ STATICFILES_DIRS = [
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
-# =========================
-# MEDIA
-# =========================
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 
-# =========================
-# AUTH REDIRECTS
-# =========================
+
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "portal_dashboard"
 LOGOUT_REDIRECT_URL = "landing"
 
 
-<<<<<<< HEAD
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-=======
-# =========================
+
 # SESSION / COOKIES / SECURITY HEADERS
-# =========================
+
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 
@@ -202,9 +184,7 @@ else:
     CSRF_COOKIE_SECURE = False
     SECURE_SSL_REDIRECT = False
 
-
-# =========================
 # DEFAULT PRIMARY KEY
-# =========================
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
->>>>>>> 6eb3285 (Ajustes finales settings entorno local y producción)
+
