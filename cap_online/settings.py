@@ -26,11 +26,12 @@ ALLOWED_HOSTS = [
     "localhost",
     "192.168.0.8",
     "10.36.189.27",
+    "cap-online.onrender.com",
 ]
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS = ["*"]
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 CSRF_TRUSTED_ORIGINS = [
     "https://cap-online.onrender.com",
@@ -165,6 +166,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Solo activar estas medidas cuando DEBUG = False
 if not DEBUG:
