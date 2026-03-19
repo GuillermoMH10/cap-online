@@ -792,7 +792,6 @@
                   <div class="professional-card">
                     <div class="professional-photo">
                       {% if d.foto %}
-                        <img src="{{ d.foto.url }}" alt="{{ d.user.get_full_name }}">
                       {% else %}
                         <div class="professional-photo-initials">
                           {{ d.user.first_name|first|upper }}{{ d.user.last_name|first|upper }}
