@@ -19,7 +19,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     SECRET_KEY = "dev-only-change-this-in-production"
 
-DEBUG = os.environ.get("DEBUG", "True") == "True"
+DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
@@ -85,21 +85,23 @@ WSGI_APPLICATION = 'cap_online.wsgi.application'
 
 
 # Database
-if DEBUG:
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True,
+        )
+    }
+else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
-else:
-    DATABASES = {
-        "default": dj_database_url.config(
-            conn_max_age=600,
-            ssl_require=True,
-        )
-    }
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {
