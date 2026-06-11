@@ -6,34 +6,213 @@
 {% block content %}
 
 <style>
-/* ── Responsive para esta página ── */
-@media (max-width: 768px) {
-  /* Grids de 2+ cols → 1 col */
-  [style*="grid-template-columns"],
-  .grid, .cards-grid, .stats-grid, .two-col, .dash-grid {
-    grid-template-columns: 1fr !important;
-  }
-  /* Tablas → scroll horizontal */
-  table { display: block; overflow-x: auto; white-space: nowrap; width: 100%; }
-  /* Flex rows → column */
-  .row, .flex-row { flex-direction: column !important; }
-  /* Padding reducido en cards */
-  .card { padding: 12px !important; }
-  /* Texto más pequeño en títulos */
-  h2 { font-size: 1.4rem !important; }
-  h3 { font-size: 1.15rem !important; }
+.call-page{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 380px;
+  gap:18px;
+  align-items:start;
 }
-@media (max-width: 480px) {
-  .card { padding: 10px 10px !important; border-radius: 10px !important; }
-  h2 { font-size: 1.2rem !important; }
+
+.video-card,.notes-card{
+  background:#fff;
+  border:1px solid #d8e4e8;
+  border-radius:22px;
+  box-shadow:0 12px 35px rgba(0,0,0,.08);
+  overflow:hidden;
+}
+
+.video-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:16px 20px;
+  border-bottom:1px solid #edf2f4;
+}
+
+.video-title{
+  font-size:18px;
+  font-weight:900;
+  color:#004d61;
+}
+
+.video-sub{
+  font-size:13px;
+  color:#60737c;
+  margin-top:4px;
+}
+
+.live-badge{
+  background:#eaf7ef;
+  color:#2f7a3d;
+  border:1px solid #bee5c8;
+  padding:6px 13px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+}
+
+.video-stage{
+  position:relative;
+  height:520px;
+  background:#0f1720;
+}
+
+#remote{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  background:#0f1720;
+}
+
+.local-box{
+  position:absolute;
+  right:18px;
+  bottom:100px;
+  width:190px;
+  height:125px;
+  border-radius:16px;
+  overflow:hidden;
+  border:3px solid rgba(255,255,255,.75);
+  box-shadow:0 10px 25px rgba(0,0,0,.28);
+  background:#000;
+}
+
+#local{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.local-label{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  background:rgba(0,0,0,.48);
+  color:#fff;
+  text-align:center;
+  padding:5px;
+  font-size:11px;
+}
+
+.patient-pill{
+  position:absolute;
+  top:16px;
+  left:16px;
+  background:rgba(0,0,0,.45);
+  color:#fff;
+  padding:7px 13px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+}
+
+.call-controls{
+  position:absolute;
+  left:50%;
+  bottom:20px;
+  transform:translateX(-50%);
+  display:flex;
+  gap:14px;
+  background:rgba(0,0,0,.30);
+  backdrop-filter:blur(10px);
+  padding:12px 18px;
+  border-radius:20px;
+}
+
+.call-controls button{
+  border:none;
+  border-radius:999px;
+  padding:11px 18px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+#startBtn{
+  background:#fff;
+  color:#004d61;
+}
+
+#hangBtn{
+  background:#e53935;
+  color:#fff;
+}
+
+.notes-card{
+  padding:22px;
+}
+
+.notes-title{
+  font-size:20px;
+  font-weight:900;
+  color:#004d61;
+}
+
+.notes-sub{
+  color:#60737c;
+  font-size:13px;
+  margin:4px 0 16px;
+}
+
+.field{
+  margin-bottom:13px;
+}
+
+.field label{
+  display:block;
+  font-size:12px;
+  font-weight:900;
+  color:#3b5560;
+  margin-bottom:6px;
+}
+
+.field input,.field textarea,.field select{
+  width:100%;
+  border:1px solid #d2e0e5;
+  border-radius:12px;
+  padding:11px 12px;
+  font-family:inherit;
+  background:#f9fcfd;
+  outline:none;
+}
+
+.field textarea{
+  min-height:105px;
+  resize:vertical;
+}
+
+.save-btn{
+  width:100%;
+  border:none;
+  border-radius:13px;
+  background:#006b7d;
+  color:#fff;
+  padding:13px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.save-btn:hover{
+  background:#004d61;
+}
+
+@media(max-width:1100px){
+  .call-page{
+    grid-template-columns:1fr;
+  }
+  .video-stage{
+    height:430px;
+  }
 }
 </style>
 
-  <div class="card" style="margin-bottom:14px;">
-    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+<div class="call-page">
+
+  <section class="video-card">
+    <div class="video-header">
       <div>
-        <h3 style="margin-bottom:6px;">{{ call.get_call_type_display }} — Sala #{{ call.id }}</h3>
-        <div class="muted">
+        <div class="video-title">{{ call.get_call_type_display }} — Sala #{{ call.id }}</div>
+        <div class="video-sub">
           {% if is_doctor %}
             Paciente: {{ call.user.get_full_name|default:call.user.username }}
           {% else %}
@@ -41,140 +220,229 @@
           {% endif %}
         </div>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        <button class="btn primary" id="startBtn">Iniciar</button>
-        <button class="btn" id="hangBtn" disabled>Colgar</button>
+      <div class="live-badge">● En sesión</div>
+    </div>
+
+    <div class="video-stage">
+      <video id="remote" autoplay playsinline></video>
+
+      <div class="patient-pill">
+        {% if is_doctor %}
+          {{ call.user.get_full_name|default:call.user.username }}
+        {% else %}
+          {{ call.doctor.get_full_name|default:call.doctor.username }}
+        {% endif %}
+      </div>
+
+      <div class="local-box">
+        <video id="local" autoplay playsinline muted></video>
+        <div class="local-label">Tú</div>
+      </div>
+
+      <div class="call-controls">
+        <button id="startBtn" type="button">Iniciar</button>
+        <button id="hangBtn" type="button" disabled>Colgar</button>
       </div>
     </div>
-    <p class="muted" style="margin-top:10px;">Esto usa WebRTC con una señalización sencilla (polling). Para pruebas locales, abre la sala en dos navegadores / modo incógnito.</p>
-  </div>
+  </section>
 
-  <div class="card" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-    <div>
-      <div style="font-weight:900;margin-bottom:8px;">Tu cámara</div>
-      <video id="local" autoplay playsinline muted style="width:100%;border-radius:12px;border:1px solid var(--border);background:#000;min-height:260px;"></video>
+  {% if is_doctor and paciente %}
+  <aside class="notes-card">
+    <div class="notes-title">Nota de sesión</div>
+    <div class="notes-sub">
+      Paciente: {{ paciente.get_full_name|default:paciente.username }}
     </div>
-    <div>
-      <div style="font-weight:900;margin-bottom:8px;">Remoto</div>
-      <video id="remote" autoplay playsinline style="width:100%;border-radius:12px;border:1px solid var(--border);background:#000;min-height:260px;"></video>
-    </div>
-  </div>
 
-  <script>
-    (function(){
-      const roomKey = "{{ room_key }}";
-      const meId = {{ request.user.id }};
-      const callType = "{{ call.call_type }}";
-      const startBtn = document.getElementById('startBtn');
-      const hangBtn = document.getElementById('hangBtn');
-      const localVideo = document.getElementById('local');
-      const remoteVideo = document.getElementById('remote');
+    <form method="POST">
+      {% csrf_token %}
 
-      let pc = null;
-      let localStream = null;
-      let lastSignalId = 0;
+      <div class="field">
+        <label>Título de la sesión</label>
+        <input type="text" name="titulo" placeholder="Ej: Seguimiento de ansiedad" required>
+      </div>
 
-      function csrfToken(){
-        const el = document.querySelector('input[name=csrfmiddlewaretoken]');
-        return el ? el.value : '';
+      <div class="field">
+        <label>Estado emocional</label>
+        <select name="estado_emocional">
+          <option value="">Seleccionar estado</option>
+          <option value="Ansioso">Ansioso</option>
+          <option value="Reflexivo">Reflexivo</option>
+          <option value="Estable">Estable</option>
+          <option value="Motivado">Motivado</option>
+          <option value="Vulnerable">Vulnerable</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Observaciones</label>
+        <textarea name="observaciones" placeholder="Avances, comportamiento o puntos importantes..." required></textarea>
+      </div>
+
+      <div class="field">
+        <label>Recomendaciones</label>
+        <textarea name="recomendaciones" placeholder="Seguimiento para próxima sesión..."></textarea>
+      </div>
+
+      <div class="field">
+        <label>Próxima sesión</label>
+        <input type="date" name="proxima_sesion">
+      </div>
+
+      <button class="save-btn" type="submit">Guardar nota clínica</button>
+    </form>
+  </aside>
+  {% endif %}
+
+</div>
+
+<script>
+(function(){
+  const roomKey = "{{ room_key }}";
+  const meId = {{ request.user.id }};
+  const callType = "{{ call.call_type }}";
+  const startBtn = document.getElementById('startBtn');
+  const hangBtn = document.getElementById('hangBtn');
+  const localVideo = document.getElementById('local');
+  const remoteVideo = document.getElementById('remote');
+
+  let pc = null;
+  let localStream = null;
+  let lastSignalId = 0;
+
+  function csrfToken(){
+    const el = document.querySelector('input[name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+  }
+
+  async function apiPull(){
+    const r = await fetch(`{% url 'call_signals_pull' room_key %}?after=${lastSignalId}`);
+    if(!r.ok) return [];
+    const j = await r.json();
+    return j.signals || [];
+  }
+
+  async function apiPush(payload){
+    await fetch(`{% url 'call_signals_push' room_key %}`, {
+      method:'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type':'application/json',
+        'X-CSRFToken': csrfToken()
       }
+    });
+  }
 
-      async function apiPull(){
-        const r = await fetch(`{% url 'call_signals_pull' room_key %}?after=${lastSignalId}`);
-        if(!r.ok) return [];
-        const j = await r.json();
-        return j.signals || [];
+  function ensurePc(){
+    if(pc) return pc;
+
+    pc = new RTCPeerConnection({
+      iceServers: [{ urls:'stun:stun.l.google.com:19302' }]
+    });
+
+    pc.onicecandidate = (e) => {
+      if(e.candidate){
+        apiPush({ type:'ice', candidate:e.candidate });
       }
+    };
 
-      async function apiPush(payload){
-        await fetch(`{% url 'call_signals_push' room_key %}`,
-          { method:'POST', body: JSON.stringify(payload), headers: { 'Content-Type':'application/json', 'X-CSRFToken': csrfToken() } }
-        );
-      }
+    pc.ontrack = (e) => {
+      remoteVideo.srcObject = e.streams[0];
+    };
 
-      function ensurePc(){
-        if(pc) return pc;
-        pc = new RTCPeerConnection({ iceServers: [ { urls: 'stun:stun.l.google.com:19302' } ] });
-        pc.onicecandidate = (e) => {
-          if(e.candidate){ apiPush({ type:'ice', candidate: e.candidate }); }
-        };
-        pc.ontrack = (e) => {
-          remoteVideo.srcObject = e.streams[0];
-        };
-        return pc;
-      }
+    return pc;
+  }
 
-      async function start(){
-        startBtn.disabled = true;
-        hangBtn.disabled = false;
+  async function start(){
+    startBtn.disabled = true;
+    hangBtn.disabled = false;
 
-        const constraints = callType === 'video' ? { video:true, audio:true } : { video:false, audio:true };
+    const constraints = callType === 'video'
+      ? { video:true, audio:true }
+      : { video:false, audio:true };
+
+    localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    localVideo.srcObject = localStream;
+
+    const p = ensurePc();
+    localStream.getTracks().forEach(t => p.addTrack(t, localStream));
+
+    const offer = await p.createOffer();
+    await p.setLocalDescription(offer);
+    await apiPush({ type:'offer', sdp:p.localDescription });
+  }
+
+  async function hang(){
+    hangBtn.disabled = true;
+    startBtn.disabled = false;
+
+    if(pc){
+      pc.close();
+      pc = null;
+    }
+
+    if(localStream){
+      localStream.getTracks().forEach(t => t.stop());
+      localStream = null;
+    }
+
+    localVideo.srcObject = null;
+    remoteVideo.srcObject = null;
+  }
+
+  async function handleSignal(sig){
+    lastSignalId = sig.id;
+    const payload = sig.payload;
+
+    if(sig.sender_id === meId) return;
+
+    const p = ensurePc();
+
+    if(payload.type === 'offer'){
+      if(!localStream){
+        const constraints = callType === 'video'
+          ? { video:true, audio:true }
+          : { video:false, audio:true };
+
         localStream = await navigator.mediaDevices.getUserMedia(constraints);
         localVideo.srcObject = localStream;
-
-        const p = ensurePc();
         localStream.getTracks().forEach(t => p.addTrack(t, localStream));
-
-        // crea oferta (si el otro ya creó una, nosotros contestamos)
-        const offer = await p.createOffer();
-        await p.setLocalDescription(offer);
-        await apiPush({ type:'offer', sdp: p.localDescription });
       }
 
-      async function hang(){
-        hangBtn.disabled = true;
-        startBtn.disabled = false;
-        if(pc){ pc.close(); pc = null; }
-        if(localStream){ localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-        localVideo.srcObject = null;
-        remoteVideo.srcObject = null;
+      await p.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+      const answer = await p.createAnswer();
+      await p.setLocalDescription(answer);
+      await apiPush({ type:'answer', sdp:p.localDescription });
+    }
+
+    if(payload.type === 'answer'){
+      await p.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+    }
+
+    if(payload.type === 'ice' && payload.candidate){
+      try{
+        await p.addIceCandidate(new RTCIceCandidate(payload.candidate));
+      }catch(e){}
+    }
+  }
+
+  async function loop(){
+    try{
+      const list = await apiPull();
+      for(const s of list){
+        await handleSignal(s);
       }
+    }catch(e){}
+    setTimeout(loop, 1200);
+  }
 
-      async function handleSignal(sig){
-        lastSignalId = sig.id;
-        const payload = sig.payload;
-        if(sig.sender_id === meId) return;
+  startBtn.addEventListener('click', () => start().catch(() => {
+    startBtn.disabled = false;
+  }));
 
-        const p = ensurePc();
+  hangBtn.addEventListener('click', () => hang());
 
-        if(payload.type === 'offer'){
-          if(!localStream){
-            const constraints = callType === 'video' ? { video:true, audio:true } : { video:false, audio:true };
-            localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            localVideo.srcObject = localStream;
-            localStream.getTracks().forEach(t => p.addTrack(t, localStream));
-          }
-          await p.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-          const answer = await p.createAnswer();
-          await p.setLocalDescription(answer);
-          await apiPush({ type:'answer', sdp: p.localDescription });
-        }
+  loop();
+})();
+</script>
 
-        if(payload.type === 'answer'){
-          await p.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-        }
-
-        if(payload.type === 'ice' && payload.candidate){
-          try{ await p.addIceCandidate(new RTCIceCandidate(payload.candidate)); }catch(e){}
-        }
-      }
-
-      async function loop(){
-        try{
-          const list = await apiPull();
-          for(const s of list){ await handleSignal(s); }
-        }catch(e){}
-        setTimeout(loop, 1200);
-      }
-
-      startBtn.addEventListener('click', () => start().catch(() => { startBtn.disabled = false; }));
-      hangBtn.addEventListener('click', () => hang());
-
-      // Arranca polling
-      loop();
-    })();
-  </script>
-
-  <!-- csrf token para JS -->
-  <form style="display:none;">{% csrf_token %}</form>
 {% endblock %}

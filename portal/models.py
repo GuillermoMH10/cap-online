@@ -121,3 +121,29 @@ class CallSignal(models.Model):
 
     class Meta:
         ordering = ["created_at"]
+
+#Notas
+class SessionNote(models.Model):
+    doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='doctor_notes')
+    patient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='patient_notes')
+    appointment = models.ForeignKey('Appointment', on_delete=models.SET_NULL, null=True, blank=True)
+
+    titulo = models.CharField(max_length=200)
+    estado_emocional = models.CharField(max_length=120, blank=True)
+    observaciones = models.TextField()
+    recomendaciones = models.TextField(blank=True)
+    proxima_sesion = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.patient} - {self.titulo}"
+
+class AuditLog(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    accion = models.CharField(max_length=255)
+    modulo = models.CharField(max_length=100, blank=True, null=True)
+    ip = models.GenericIPAddressField(blank=True, null=True)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.usuario} - {self.accion} - {self.fecha}"

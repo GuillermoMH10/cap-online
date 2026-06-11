@@ -8,7 +8,11 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
 from django.http import HttpResponse
-
+from .models import SessionNote
+from .models import CallSignal
+from django.http import JsonResponse
+from .models import AuditLog
+import json
 from .models import ChatMessage, CallRequest, DoctorProfile, PatientProfile, Appointment, CallSignal
 from .forms import (
     DoctorCreateForm,
@@ -67,6 +71,16 @@ def signup(request):
         email = (request.POST.get("email") or "").strip().lower()
         password = request.POST.get("password") or ""
         password2 = request.POST.get("password2") or ""
+
+        acepto_politicas= request.POST.get("acepto_politicas")
+
+        if not acepto_politicas:
+            messages.error(
+                request,
+                "Debe aceptar las politicas de Privacidad para crear tu cuenta"
+            )
+            return redirect("signup")
+
 
         if not full_name or not email or not password:
             messages.error(request, "Completa todos los campos.")
@@ -274,6 +288,22 @@ def chat(request, user_id=None):
     }
     return render(request, "portal/chat.html", ctx)
 
+@login_required(login_url="login")
+@require_POST
+def call_signals_push(request,room_key: str): 
+
+    payload = json.loads(request.body.decode("utf-8"))
+
+    signal = CallSignal.objects.create(
+        room_key=room_key,
+        sender=request.user,
+        payload=payload
+    )
+
+    return JsonResponse({
+    "ok": True,
+    "id": signal.id
+    })
 
 @login_required(login_url="login")
 def send_message(request, user_id: int):
@@ -418,48 +448,67 @@ def call_room(request, call_id: int):
     call = get_object_or_404(CallRequest, pk=call_id)
 
     if request.user.id not in (call.user_id, call.doctor_id):
-        return HttpResponseBadRequest("not allowed")
+        return HttpResponseBadRequest("No autorizado")
 
     if call.status != "approved":
         messages.error(request, "La llamada todavía no está aprobada.")
         return redirect("portal_calls")
 
+    is_doctor = _is_doctor(request.user)
+
+    if is_doctor:
+        paciente = call.user
+    else:
+        paciente = request.user
+
+    if request.method == "POST" and is_doctor and paciente:
+        SessionNote.objects.create(
+            doctor=request.user,
+            patient=paciente,
+            titulo=request.POST.get("titulo"),
+            estado_emocional=request.POST.get("estado_emocional", ""),
+            observaciones=request.POST.get("observaciones"),
+            recomendaciones=request.POST.get("recomendaciones", ""),
+            proxima_sesion=request.POST.get("proxima_sesion") or None,
+        )
+
+        messages.success(request, "Nota clínica guardada correctamente.")
+        return redirect("call_room", call_id=call.id)
+
     ctx = {
         "notifications_count": _notifications_count(request.user),
         "call": call,
         "room_key": f"call-{call.id}",
-        "is_doctor": _is_doctor(request.user),
+        "is_doctor": is_doctor,
+        "paciente": paciente,
     }
+
     return render(request, "portal/call_room.html", ctx)
 
 
 @login_required(login_url="login")
 def call_signals_pull(request, room_key: str):
-    try:
-        after_id = int(request.GET.get("after", "0"))
-    except ValueError:
-        after_id = 0
 
-    qs = CallSignal.objects.filter(room_key=room_key).order_by("id")
-    if after_id:
-        qs = qs.filter(id__gt=after_id)
+    after = int(request.GET.get("after", "0"))
 
-    signals = [{"id": s.id, "sender_id": s.sender_id, "payload": s.payload} for s in qs[:200]]
-    return JsonResponse({"signals": signals})
+    signals = CallSignal.objects.filter(
+        room_key=room_key,
+        id__gt=after
+    ).order_by("id")
 
+    data = []
 
-@login_required(login_url="login")
-@require_POST
-def call_signals_push(request, room_key: str):
-    import json
+    for s in signals:
+        data.append({
+            "id": s.id,
+            "sender_id": s.sender_id,
+            "payload": s.payload,
+            "created_at": s.created_at.isoformat(),
+        })
 
-    try:
-        payload = json.loads(request.body.decode("utf-8"))
-    except Exception:
-        return HttpResponseBadRequest("bad json")
-
-    CallSignal.objects.create(room_key=room_key, sender=request.user, payload=payload)
-    return JsonResponse({"ok": True})
+    return JsonResponse({
+        "signals": data
+    })
 
 
 @login_required(login_url="login")
@@ -619,3 +668,54 @@ def crear_admin(request):
         )
         return HttpResponse("Admin creado correctamente")
     return HttpResponse("El admin ya existe")
+#Nota
+@login_required(login_url="login")
+def mis_notas_clinicas(request):
+    notas = SessionNote.objects.filter(
+        doctor=request.user
+    ).select_related("patient").order_by("-created_at")
+
+    return render(request, "portal/mis_notas_clinicas.html", {
+        "notas": notas,
+    })
+@login_required
+def notas_paciente(request, patient_id):
+    if not _is_doctor(request.user):
+        messages.error(request, "Solo los doctores pueden crear notas clínicas.")
+        return redirect("portal_dashboard")
+
+    paciente = get_object_or_404(User, id=patient_id)
+
+    notas = SessionNote.objects.filter(
+        doctor=request.user,
+        patient=paciente
+    ).order_by("-created_at")
+
+    if request.method == "POST":
+        SessionNote.objects.create(
+            doctor=request.user,
+            patient=paciente,
+            titulo=request.POST.get("titulo"),
+            observaciones=request.POST.get("observaciones"),
+            recomendaciones=request.POST.get("recomendaciones", "")
+        )
+
+        return redirect("notas_paciente", patient_id=paciente.id)
+
+    return render(request, "portal/mis_notas_clinicas.html", {
+        "paciente": paciente,
+        "notas": notas,
+    })
+def politica_privacidad(request):
+        return render(request, "auth/politica_privacidad.html")
+
+def registrar_auditoria(request, accion, modulo):
+    ip = request.META.get("REMOTE_ADDR")
+    usuario = request.user if request.user.is_authenticated else None
+
+    AuditLog.objects.create(
+        usuario=usuario,
+        accion=accion,
+        modulo=modulo,
+        ip=ip
+    )

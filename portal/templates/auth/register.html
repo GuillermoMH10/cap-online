@@ -8,23 +8,22 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;600&family=Work+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Work+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
     :root{
-      --p:#004d61;
-      --s:#006b7d;
-      --bg:#e8eff4;
-      --bd:#d1dce6;
-      --t:#1a2332;
-      --m:#4a5568;
-      --sh:0 20px 60px rgba(0,77,97,.12);
-      --danger-bg:#fff1f2;
-      --danger-border:#fecdd3;
-      --danger-text:#b42318;
+      --primary:#1a6b4a;
+      --secondary:#1a6b4a;
+      --accent:#1a6b4a;
+      --bg:#eef5f7;
+      --text:#1a6b4a;
+      --muted:#1a6b4a;
+      --border:#d8e4e8;
+      --success:#15803d;
+      --danger:#b42318;
       --success-bg:#ecfdf3;
-      --success-border:#abefc6;
-      --success-text:#067647;
+      --danger-bg:#fff1f2;
+      --shadow:0 24px 70px rgba(0,77,97,.14);
     }
 
     *{
@@ -34,81 +33,173 @@
     }
 
     body{
-      font-family:'Work Sans',sans-serif;
-      background:linear-gradient(165deg,#f4f7f9 0%,var(--bg) 100%);
       min-height:100vh;
-      display:grid;
-      place-items:center;
+      font-family:'Work Sans',sans-serif;
+      background:
+        radial-gradient(circle at top left,#1a6b4a(0,139,163,.16), transparent 35%),
+        linear-gradient(135deg,#f8fbfc 0%,#e8f1f4 100%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
       padding:24px;
+      color:var(--text);
     }
 
-    .card{
-      width:min(640px,100%);
+    .auth-shell{
+      width:min(1120px,100%);
+      display:grid;
+      grid-template-columns: 1fr 1.15fr;
       background:#fff;
-      border:1px solid var(--bd);
-      border-radius:16px;
-      box-shadow:var(--sh);
-      padding:36px;
+      border:1px solid var(--border);
+      border-radius:30px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
     }
 
-    .logo{
-      width:74px;
-      height:74px;
-      border-radius:14px;
-      background:var(--p);
+    .auth-info{
+      background:linear-gradient(145deg,#004d61,#00798d);
+      color:#fff;
+      padding:44px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      min-height:680px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .auth-info::before{
+      content:"";
+      position:absolute;
+      width:320px;
+      height:320px;
+      border-radius:50%;
+      background:rgba(255,255,255,.09);
+      right:-120px;
+      top:80px;
+    }
+
+    .brand{
+      position:relative;
+      z-index:1;
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+
+    .brand-icon{
+      width:54px;
+      height:54px;
+      border-radius:16px;
       display:grid;
       place-items:center;
-      margin:0 auto 16px;
-      color:#fff;
-      font-size:44px;
+      background:rgba(255,255,255,.15);
+      border:1px solid rgba(255,255,255,.24);
+      font-size:30px;
       font-weight:900;
     }
 
-    h1{
-      font-family:'Crimson Pro',serif;
-      text-align:center;
-      color:var(--p);
-      font-size:34px;
-      margin-bottom:6px;
+    .brand strong{
+      display:block;
+      font-size:22px;
     }
 
-    .sub{
-      text-align:center;
-      color:var(--m);
-      margin-bottom:20px;
+    .brand span{
+      font-size:13px;
+      opacity:.82;
+    }
+
+    .hero-copy{
+      position:relative;
+      z-index:1;
+      margin-top:50px;
+    }
+
+    .hero-copy h1{
+      font-family:'Crimson Pro',serif;
+      font-size:48px;
+      line-height:1;
+      margin-bottom:18px;
+    }
+
+    .hero-copy p{
+      font-size:16px;
+      line-height:1.8;
+      opacity:.9;
+      max-width:420px;
+    }
+
+    .trust-list{
+      position:relative;
+      z-index:1;
+      display:grid;
+      gap:14px;
+      margin-top:40px;
+    }
+
+    .trust-item{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      padding:13px 14px;
+      border-radius:16px;
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .auth-card{
+      padding:42px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .form-wrap{
+      width:min(540px,100%);
+    }
+
+    .form-head{
+      margin-bottom:24px;
+    }
+
+    .form-head h2{
+      font-family:'Crimson Pro',serif;
+      color:var(--primary);
+      font-size:40px;
+      line-height:1;
+      margin-bottom:8px;
+    }
+
+    .form-head p{
+      color:var(--muted);
+      line-height:1.6;
     }
 
     .messages{
       display:grid;
       gap:10px;
-      margin-bottom:14px;
+      margin-bottom:18px;
     }
 
     .msg{
       padding:12px 14px;
-      border-radius:10px;
-      font-size:0.92rem;
+      border-radius:14px;
+      font-size:14px;
       font-weight:700;
-      border:1px solid transparent;
     }
 
-    .msg.error,
-    .msg.danger{
+    .msg.error,.msg.danger{
       background:var(--danger-bg);
-      border-color:var(--danger-border);
-      color:var(--danger-text);
+      color:var(--danger);
+      border:1px solid #fecdd3;
     }
 
     .msg.success{
       background:var(--success-bg);
-      border-color:var(--success-border);
-      color:var(--success-text);
-    }
-
-    .msg.info{
-      background:#eff8ff;
-      border-color:#b2ddff;
-      color:#175cd3;
+      color:var(--success);
+      border:1px solid #bbf7d0;
     }
 
     .grid{
@@ -117,74 +208,119 @@
       gap:14px;
     }
 
+    .field{
+      margin-bottom:15px;
+    }
+
     label{
       display:block;
+      font-size:14px;
       font-weight:800;
-      color:var(--t);
-      margin:14px 0 6px;
+      color:#1a6b4a;
+      margin-bottom:7px;
     }
 
     input{
       width:100%;
-      padding:14px 14px;
-      border:1px solid var(--bd);
-      border-radius:10px;
-      font-size:16px;
-      outline:none;
+      border:1px solid var(--border);
+      border-radius:15px;
+      padding:14px 15px;
       font-family:'Work Sans',sans-serif;
-      transition:border-color .2s, box-shadow .2s;
+      font-size:15px;
+      outline:none;
+      background:#fbfdfe;
+      transition:.2s;
     }
 
     input:focus{
-      border-color:var(--p);
-      box-shadow:0 0 0 3px rgba(0,77,97,.10);
+      border-color:var(--accent);
+      box-shadow:0 0 0 4px #1a6b4a(0,139,163,.12);
+      background:#fff;
     }
 
-    .help{
-      margin-top:6px;
-      font-size:13px;
-      color:var(--m);
-      line-height:1.5;
+    .password-box{
+      margin-top:8px;
+      background:#f8fbfc;
+      border:1px solid #dce8ec;
+      border-radius:16px;
+      padding:13px;
+      display:grid;
+      gap:8px;
     }
 
-    .password-rules{
-      margin-top:10px;
-      padding:12px 14px;
-      background:#f8fafc;
-      border:1px solid #e2e8f0;
-      border-radius:10px;
-      color:var(--m);
+    .rule{
+      display:flex;
+      align-items:center;
+      gap:8px;
       font-size:13px;
-      line-height:1.6;
+      font-weight:700;
+      color:#7a8790;
+      transition:.2s;
+    }
+
+    .rule::before{
+      content:"";
+      width:9px;
+      height:9px;
+      border-radius:50%;
+      background:#cbd5dc;
+      transition:.2s;
+    }
+
+    .rule.valid{
+      color:var(--success);
+    }
+
+    .rule.valid::before{
+      background:var(--success);
+      box-shadow:0 0 0 4px rgba(21,128,61,.12);
+    }
+
+    .match-text{
+      font-size:13px;
+      font-weight:700;
+      margin-top:8px;
+      color:#1a6b4a;
+    }
+
+    .match-text.valid{
+      color:var(--success);
+    }
+
+    .match-text.invalid{
+      color:var(--danger);
     }
 
     .btn{
       width:100%;
-      padding:14px;
       border:0;
-      border-radius:10px;
-      background:var(--p);
+      border-radius:16px;
+      background:linear-gradient(135deg,var(--primary),var(--secondary));
       color:#fff;
+      padding:15px;
+      font-size:15px;
       font-weight:900;
       letter-spacing:.04em;
       text-transform:uppercase;
-      font-size:15px;
       cursor:pointer;
-      margin-top:20px;
+      margin-top:8px;
+      transition:.2s;
     }
 
     .btn:hover{
-      background:var(--s);
+      transform:translateY(-1px);
+      box-shadow:0 12px 28px #1a6b4a(0,77,97,.22);
     }
 
     .bottom{
       text-align:center;
+      color:var(--muted);
       margin-top:18px;
-      color:var(--m);
+      font-size:14px;
     }
 
     .bottom a{
-      color:var(--p);
+      color:var(--primary);
       font-weight:900;
       text-decoration:none;
     }
@@ -197,132 +333,264 @@
       display:block;
       text-align:center;
       margin-top:12px;
-      color:var(--m);
+      color:var(--muted);
       text-decoration:none;
       font-size:14px;
     }
 
     .back:hover{
-      color:var(--p);
+      color:var(--primary);
     }
+    .privacy-box{
+  margin:18px 0;
+  background:#f8fbfc;
+  border:1px solid #dce8ec;
+  border-radius:16px;
+  padding:14px;
+}
 
-    @media (max-width:640px){
-      .grid{
+.privacy-check{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  font-size:13px;
+  line-height:1.5;
+  color:#4b5563;
+}
+
+.privacy-check input{
+  width:18px;
+  height:18px;
+  margin-top:2px;
+  accent-color:#1a6b4a;
+}
+
+.privacy-check a{
+  color:#1a6b4a;
+  font-weight:800;
+  text-decoration:none;
+}
+
+.privacy-check a:hover{
+  text-decoration:underline;
+}
+
+    @media(max-width:950px){
+      .auth-shell{
         grid-template-columns:1fr;
       }
 
-      .card{
-        padding:24px 18px;
+      .auth-info{
+        min-height:auto;
+        padding:34px;
       }
 
-      h1{
-        font-size:28px;
+      .hero-copy h1{
+        font-size:38px;
       }
+
+      .trust-list{
+        margin-top:26px;
+      }
+    }
+
+    @media(max-width:640px){
+      body{
+        padding:14px;
+      }
+
+.auth-shell{
+  width:100%;
+  max-width:100%;
+}
+
+.auth-info{
+  display:none;
+}
+
+.auth-card{
+  width:100%;
+  padding:22px 16px;
+}
+
+.form-wrap{
+  width:100%;
+}
+
+input{
+  font-size:16px;
+  padding:13px 14px;
+}
+
+.btn{
+  padding:14px;
+}
+
+.privacy-check{
+  font-size:12px;
+}
+
+.password-box{
+  padding:12px;
+}
     }
   </style>
 </head>
+
 <body>
-  <div class="card">
-    <div class="logo">Ψ</div>
-    <h1>Crear cuenta</h1>
-    <p class="sub">Regístrate para acceder al portal de pacientes</p>
+  <main class="auth-shell">
 
-    {% if messages %}
-      <div class="messages">
-        {% for message in messages %}
-          <div class="msg {{ message.tags|default:'info' }}">{{ message }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    <form method="post" action="{% url 'signup' %}" novalidate>
-      {% csrf_token %}
-
-      <label for="full_name">Nombre completo</label>
-      <input
-        id="full_name"
-        name="full_name"
-        type="text"
-        placeholder="Ej. Viridiana Hernández Bautista"
-        autocomplete="name"
-        required
-        maxlength="150"
-      >
-
-      <div class="grid">
-        <div>
-          <label for="telefono">Teléfono (opcional)</label>
-          <input
-            id="telefono"
-            name="telefono"
-            type="text"
-            placeholder="Ej. +52 81 0000 0000"
-            autocomplete="tel"
-            maxlength="30"
-          >
+    <section class="auth-info">
+      <div>
+        <div class="brand">
+          <div class="brand-icon">Ψ</div>
+          <div>
+            <strong>CAP Online</strong>
+            <span>Centro de Atención Psicológica</span>
+          </div>
         </div>
 
-        <div>
-          <label for="biografia">Biografía (opcional)</label>
-          <input
-            id="biografia"
-            name="biografia"
-            type="text"
-            placeholder="Ej. Busco terapia para ansiedad"
-            maxlength="255"
-          >
+        <div class="hero-copy">
+          <h1>Crea tu espacio seguro.</h1>
+          <p>
+            Regístrate para gestionar tus consultas, mensajes, sesiones en línea y seguimiento profesional desde un portal privado.
+          </p>
         </div>
       </div>
 
-      <label for="email">Correo electrónico</label>
-      <input
-        id="email"
-        name="email"
-        type="email"
-        placeholder="correo@ejemplo.com"
-        autocomplete="email"
-        required
-        maxlength="150"
-        inputmode="email"
-      >
-      <div class="help">Este correo será tu acceso principal a la plataforma.</div>
+      <div class="trust-list">
+        <div class="trust-item">✓ Acceso protegido con correo y contraseña</div>
+        <div class="trust-item">✓ Comunicación segura con especialistas</div>
+        <div class="trust-item">✓ Seguimiento clínico organizado</div>
+      </div>
+    </section>
 
-      <div class="grid">
-        <div>
-          <label for="password">Contraseña</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autocomplete="new-password"
-            required
-            minlength="8"
-          >
+    <section class="auth-card">
+      <div class="form-wrap">
+
+        <div class="form-head">
+          <h2>Crear cuenta</h2>
+          <p>Completa tus datos para acceder al portal de pacientes.</p>
         </div>
 
-        <div>
-          <label for="password2">Confirmar contraseña</label>
-          <input
-            id="password2"
-            name="password2"
-            type="password"
-            autocomplete="new-password"
-            required
-            minlength="8"
-          >
-        </div>
+        {% if messages %}
+          <div class="messages">
+            {% for message in messages %}
+              <div class="msg {{ message.tags|default:'info' }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'signup' %}" novalidate>
+          {% csrf_token %}
+
+          <div class="field">
+            <label for="full_name">Nombre completo</label>
+            <input id="full_name" name="full_name" type="text" placeholder="Ej. Viridiana Hernández Bautista" autocomplete="name" required>
+          </div>
+
+          <div class="grid">
+            <div class="field">
+              <label for="telefono">Teléfono</label>
+              <input id="telefono" name="telefono" type="text" placeholder="+52 81 0000 0000" autocomplete="tel">
+            </div>
+
+            <div class="field">
+              <label for="biografia">Motivo de consulta</label>
+              <input id="biografia" name="biografia" type="text" placeholder="Ej. Ansiedad, estrés, seguimiento">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="email">Correo electrónico</label>
+            <input id="email" name="email" type="email" placeholder="correo@ejemplo.com" autocomplete="email" required>
+          </div>
+
+          <div class="grid">
+            <div class="field">
+              <label for="password">Contraseña</label>
+              <input id="password" name="password" type="password" autocomplete="new-password" required>
+            </div>
+
+            <div class="field">
+              <label for="password2">Confirmar contraseña</label>
+              <input id="password2" name="password2" type="password" autocomplete="new-password" required>
+              <div id="matchText" class="match-text">Las contraseñas deben coincidir.</div>
+            </div>
+          </div>
+
+          <div class="password-box">
+            <div id="ruleLength" class="rule">Mínimo 8 caracteres</div>
+            <div id="ruleUpper" class="rule">Al menos una letra mayúscula</div>
+            <div id="ruleNumber" class="rule">Al menos un número</div>
+            <div id="ruleSpecial" class="rule">Al menos un carácter especial</div>
+          </div>
+          <div class="privacy-box">
+  <label class="privacy-check">
+    <input type="checkbox" name="acepto_politicas" required>
+    <span>
+      He leído y acepto la
+      <a href="{% url 'politica_privacidad' %}" target="_blank">
+        Política de Privacidad
+      </a>
+      y autorizo el tratamiento de mis datos personales para el funcionamiento de CAP Online.
+    </span>
+
+  </label>
+</div>
+
+          <button class="btn" type="submit">Crear cuenta</button>
+        </form>
+
+        <p class="bottom">¿Ya tienes cuenta? <a href="{% url 'login' %}">Iniciar sesión</a></p>
+        <a class="back" href="{% url 'landing' %}">← Volver al inicio</a>
+
       </div>
+    </section>
 
-      <div class="password-rules">
-        Tu contraseña debe tener al menos 8 caracteres. Evita usar datos obvios, contraseñas comunes o solo números.
-      </div>
+  </main>
 
-      <button class="btn" type="submit">Crear cuenta</button>
-    </form>
+  <script>
+    const password = document.getElementById("password");
+    const password2 = document.getElementById("password2");
+    const matchText = document.getElementById("matchText");
 
-    <p class="bottom">¿Ya tienes cuenta? <a href="{% url 'login' %}">Iniciar sesión</a></p>
-    <a class="back" href="{% url 'landing' %}">← Volver al inicio</a>
-  </div>
+    const rules = {
+      ruleLength: value => value.length >= 8,
+      ruleUpper: value => /[A-ZÁÉÍÓÚÑ]/.test(value),
+      ruleNumber: value => /[0-9]/.test(value),
+      ruleSpecial: value => /[^A-Za-z0-9ÁÉÍÓÚáéíóúÑñ]/.test(value),
+    };
+
+    function validatePassword(){
+      const value = password.value;
+
+      Object.keys(rules).forEach(id => {
+        const el = document.getElementById(id);
+        if(rules[id](value)){
+          el.classList.add("valid");
+        }else{
+          el.classList.remove("valid");
+        }
+      });
+
+      if(password2.value.length > 0 && password.value === password2.value){
+        matchText.textContent = "Las contraseñas coinciden.";
+        matchText.classList.add("valid");
+        matchText.classList.remove("invalid");
+      }else if(password2.value.length > 0){
+        matchText.textContent = "Las contraseñas no coinciden.";
+        matchText.classList.add("invalid");
+        matchText.classList.remove("valid");
+      }else{
+        matchText.textContent = "Las contraseñas deben coincidir.";
+        matchText.classList.remove("valid","invalid");
+      }
+    }
+
+    password.addEventListener("input", validatePassword);
+    password2.addEventListener("input", validatePassword);
+  </script>
+
 </body>
 </html>
-

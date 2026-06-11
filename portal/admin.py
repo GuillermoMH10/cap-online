@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import DoctorProfile, PatientProfile, Appointment, ChatMessage, CallRequest, CallSignal
-
+from .models import SessionNote
 
 @admin.register(DoctorProfile)
 class DoctorProfileAdmin(admin.ModelAdmin):
@@ -57,3 +57,10 @@ class CallRequestAdmin(admin.ModelAdmin):
 @admin.register(CallSignal)
 class CallSignalAdmin(admin.ModelAdmin):
     list_display = ("room_key", "sender", "id")
+
+@admin.register(SessionNote)
+class SessionNoteAdmin(admin.ModelAdmin):
+    list_display = ('titulo', 'doctor', 'patient', 'estado_emocional', 'created_at')
+    list_filter = ('estado_emocional', 'created_at')
+    search_fields = ('titulo', 'doctor__username', 'patient__username', 'observaciones')
+    readonly_fields = ('created_at',)

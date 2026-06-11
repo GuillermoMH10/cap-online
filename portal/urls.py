@@ -33,7 +33,10 @@ urlpatterns = [
 
     # LLAMADAS
     path("portal/request-call/", views.request_call, name="request_call"),
+    path("portal/llamadas/", views.calls, name="portal_calls"),
+    path("portal/paciente/<int:patient_id>/notas/", views.notas_paciente, name="notas_paciente"),
     path("portal/call/<int:call_id>/room/", views.call_room, name="call_room"),
+
     path("portal/call/<int:call_id>/status/<str:new_status>/", views.call_update_status, name="call_update_status"),
 
     # API llamadas (señalización WebRTC)
@@ -50,4 +53,7 @@ urlpatterns = [
     path("portal/appointment/create/", views.appointment_create, name="appointment_create"),
     path("portal/appointment/<int:appt_id>/status/<str:new_status>/", views.appointment_update_status, name="appointment_update_status"),
     path("crear-admin/", views.crear_admin),
+    path("portal/notas-clinicas/", views.mis_notas_clinicas, name="mis_notas_clinicas"),
+    path("politica-privacidad/", views.politica_privacidad, name="politica_privacidad"),
+
 ]
