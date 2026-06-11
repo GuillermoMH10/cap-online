@@ -43,10 +43,17 @@ def login_view(request):
         email = (request.POST.get("email") or "").strip().lower()
         password = request.POST.get("password") or ""
 
-        user = authenticate(request, username=email, password=password)
+        try:
+            usuario_db = User.objects.get(email__iexact=email)
+            username = usuario_db.username
+        except User.DoesNotExist:
+            username = email
+
+        user = authenticate(request, username=username, password=password)
+
         if user is None:
             messages.error(request, "Correo o contraseña incorrectos.")
-            return redirect("landing")
+            return redirect("login")
 
         login(request, user)
         messages.success(request, "Sesión iniciada correctamente.")
@@ -472,6 +479,12 @@ def call_room(request, call_id: int):
             proxima_sesion=request.POST.get("proxima_sesion") or None,
         )
 
+        registrar_auditoria(
+            request,
+            "Guardó una nota clínica",
+            "Notas Clínicas"
+        )
+
         messages.success(request, "Nota clínica guardada correctamente.")
         return redirect("call_room", call_id=call.id)
 
@@ -678,7 +691,7 @@ def mis_notas_clinicas(request):
     return render(request, "portal/mis_notas_clinicas.html", {
         "notas": notas,
     })
-@login_required
+@login_required(login_url="login")
 def notas_paciente(request, patient_id):
     if not _is_doctor(request.user):
         messages.error(request, "Solo los doctores pueden crear notas clínicas.")
@@ -698,6 +711,12 @@ def notas_paciente(request, patient_id):
             titulo=request.POST.get("titulo"),
             observaciones=request.POST.get("observaciones"),
             recomendaciones=request.POST.get("recomendaciones", "")
+        )
+
+        registrar_auditoria(
+            request,
+            "Creó una nota clínica",
+            "Notas Clínicas"
         )
 
         return redirect("notas_paciente", patient_id=paciente.id)
