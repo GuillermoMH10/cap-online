@@ -241,6 +241,8 @@
 
       <div class="call-controls">
         <button id="startBtn" type="button">Iniciar</button>
+        <button id="micBtn" type="button" disabled>Silenciar</button>
+        <button id="camBtn" type="button" disabled>Cámara</button>
         <button id="hangBtn" type="button" disabled>Colgar</button>
       </div>
     </div>
@@ -296,152 +298,269 @@
 </div>
 
 <script>
-(function(){
-  const roomKey = "{{ room_key }}";
-  const meId = {{ request.user.id }};
-  const callType = "{{ call.call_type }}";
-  const startBtn = document.getElementById('startBtn');
-  const hangBtn = document.getElementById('hangBtn');
-  const localVideo = document.getElementById('local');
-  const remoteVideo = document.getElementById('remote');
+(function () {
+  const meId = Number("{{ request.user.id }}");
+  const callType = "{{ call.call_type|escapejs }}";
+  const isDoctor = {{ is_doctor|yesno:"true,false" }};
+  const isInitiator = !isDoctor; // El paciente crea la oferta; el doctor responde.
+
+  const pullUrl = "{% url 'call_signals_pull' room_key %}";
+  const pushUrl = "{% url 'call_signals_push' room_key %}";
+
+  const startBtn = document.getElementById("startBtn");
+  const micBtn = document.getElementById("micBtn");
+  const camBtn = document.getElementById("camBtn");
+  const hangBtn = document.getElementById("hangBtn");
+  const localVideo = document.getElementById("local");
+  const remoteVideo = document.getElementById("remote");
 
   let pc = null;
   let localStream = null;
   let lastSignalId = 0;
+  let pendingIce = [];
+  let started = false;
+  let polling = true;
 
-  function csrfToken(){
-    const el = document.querySelector('input[name=csrfmiddlewaretoken]');
-    return el ? el.value : '';
+  function getCookie(name) {
+    const item = document.cookie
+      .split(";")
+      .map(v => v.trim())
+      .find(v => v.startsWith(name + "="));
+    return item ? decodeURIComponent(item.slice(name.length + 1)) : "";
   }
 
-  async function apiPull(){
-    const r = await fetch(`{% url 'call_signals_pull' room_key %}?after=${lastSignalId}`);
-    if(!r.ok) return [];
-    const j = await r.json();
-    return j.signals || [];
-  }
-
-  async function apiPush(payload){
-    await fetch(`{% url 'call_signals_push' room_key %}`, {
-      method:'POST',
-      body: JSON.stringify(payload),
+  async function apiPush(payload) {
+    const response = await fetch(pushUrl, {
+      method: "POST",
+      credentials: "same-origin",
       headers: {
-        'Content-Type':'application/json',
-        'X-CSRFToken': csrfToken()
-      }
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCookie("csrftoken")
+      },
+      body: JSON.stringify(payload)
     });
+
+    if (!response.ok) {
+      throw new Error(`No se pudo enviar señal (${response.status})`);
+    }
   }
 
-  function ensurePc(){
-    if(pc) return pc;
+  async function apiPull() {
+    const response = await fetch(`${pullUrl}?after=${lastSignalId}`, {
+      credentials: "same-origin",
+      cache: "no-store"
+    });
+    if (!response.ok) {
+      throw new Error(`No se pudieron leer señales (${response.status})`);
+    }
+    const data = await response.json();
+    return data.signals || [];
+  }
+
+  function createPeerConnection() {
+    if (pc) return pc;
 
     pc = new RTCPeerConnection({
-      iceServers: [{ urls:'stun:stun.l.google.com:19302' }]
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" }
+        // Para producción entre redes distintas agrega aquí tu servidor TURN.
+      ]
     });
 
-    pc.onicecandidate = (e) => {
-      if(e.candidate){
-        apiPush({ type:'ice', candidate:e.candidate });
+    pc.onicecandidate = async event => {
+      if (!event.candidate) return;
+      try {
+        await apiPush({ type: "ice", candidate: event.candidate.toJSON() });
+      } catch (error) {
+        console.error("Error enviando ICE:", error);
       }
     };
 
-    pc.ontrack = (e) => {
-      remoteVideo.srcObject = e.streams[0];
+    pc.ontrack = event => {
+      const [stream] = event.streams;
+      if (stream) remoteVideo.srcObject = stream;
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log("WebRTC:", pc?.connectionState);
+      if (pc?.connectionState === "connected") {
+        startBtn.textContent = "Conectado";
+      }
+      if (["failed", "disconnected"].includes(pc?.connectionState)) {
+        startBtn.textContent = "Reconectar";
+        startBtn.disabled = false;
+      }
     };
 
     return pc;
   }
 
-  async function start(){
-    startBtn.disabled = true;
-    hangBtn.disabled = false;
+  async function openMedia() {
+    if (localStream) return localStream;
 
-    const constraints = callType === 'video'
-      ? { video:true, audio:true }
-      : { video:false, audio:true };
+    const constraints = callType === "video"
+      ? { video: true, audio: true }
+      : { video: false, audio: true };
 
     localStream = await navigator.mediaDevices.getUserMedia(constraints);
     localVideo.srcObject = localStream;
 
-    const p = ensurePc();
-    localStream.getTracks().forEach(t => p.addTrack(t, localStream));
+    const peer = createPeerConnection();
+    localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
 
-    const offer = await p.createOffer();
-    await p.setLocalDescription(offer);
-    await apiPush({ type:'offer', sdp:p.localDescription });
+    micBtn.disabled = false;
+    camBtn.disabled = callType !== "video";
+    hangBtn.disabled = false;
+    return localStream;
   }
 
-  async function hang(){
-    hangBtn.disabled = true;
-    startBtn.disabled = false;
+  async function flushPendingIce() {
+    if (!pc?.remoteDescription) return;
+    for (const candidate of pendingIce) {
+      await pc.addIceCandidate(candidate);
+    }
+    pendingIce = [];
+  }
 
-    if(pc){
+  async function startCall() {
+    if (started) return;
+    started = true;
+    startBtn.disabled = true;
+
+    try {
+      await openMedia();
+
+      if (isInitiator) {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await apiPush({ type: "offer", sdp: pc.localDescription });
+        startBtn.textContent = "Llamando…";
+      } else {
+        startBtn.textContent = "Esperando llamada…";
+      }
+    } catch (error) {
+      console.error("No se pudo iniciar:", error);
+      alert("No se pudo iniciar la llamada. Revisa permisos de cámara/micrófono y la consola.");
+      started = false;
+      startBtn.disabled = false;
+      startBtn.textContent = "Iniciar";
+    }
+  }
+
+  async function handleSignal(signal) {
+    lastSignalId = Math.max(lastSignalId, signal.id);
+    if (Number(signal.sender_id) === meId) return;
+
+    const payload = signal.payload || {};
+    const peer = createPeerConnection();
+
+    if (payload.type === "offer") {
+      await openMedia();
+      await peer.setRemoteDescription(payload.sdp);
+      await flushPendingIce();
+
+      const answer = await peer.createAnswer();
+      await peer.setLocalDescription(answer);
+      await apiPush({ type: "answer", sdp: peer.localDescription });
+      started = true;
+      startBtn.disabled = true;
+      startBtn.textContent = "Conectando…";
+      return;
+    }
+
+    if (payload.type === "answer") {
+      if (peer.signalingState !== "have-local-offer") return;
+      await peer.setRemoteDescription(payload.sdp);
+      await flushPendingIce();
+      return;
+    }
+
+    if (payload.type === "ice" && payload.candidate) {
+      const candidate = new RTCIceCandidate(payload.candidate);
+      if (peer.remoteDescription) {
+        await peer.addIceCandidate(candidate);
+      } else {
+        pendingIce.push(candidate);
+      }
+      return;
+    }
+
+    if (payload.type === "hangup") {
+      cleanup(false);
+      alert("La otra persona finalizó la llamada.");
+    }
+  }
+
+  async function pollSignals() {
+    while (polling) {
+      try {
+        const signals = await apiPull();
+        for (const signal of signals) {
+          await handleSignal(signal);
+        }
+      } catch (error) {
+        console.error("Error de señalización:", error);
+      }
+      await new Promise(resolve => setTimeout(resolve, 900));
+    }
+  }
+
+  function cleanup(resetPolling = true) {
+    if (pc) {
+      pc.ontrack = null;
+      pc.onicecandidate = null;
       pc.close();
       pc = null;
     }
-
-    if(localStream){
-      localStream.getTracks().forEach(t => t.stop());
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
       localStream = null;
     }
 
     localVideo.srcObject = null;
     remoteVideo.srcObject = null;
-  }
-
-  async function handleSignal(sig){
-    lastSignalId = sig.id;
-    const payload = sig.payload;
-
-    if(sig.sender_id === meId) return;
-
-    const p = ensurePc();
-
-    if(payload.type === 'offer'){
-      if(!localStream){
-        const constraints = callType === 'video'
-          ? { video:true, audio:true }
-          : { video:false, audio:true };
-
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
-        localVideo.srcObject = localStream;
-        localStream.getTracks().forEach(t => p.addTrack(t, localStream));
-      }
-
-      await p.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-      const answer = await p.createAnswer();
-      await p.setLocalDescription(answer);
-      await apiPush({ type:'answer', sdp:p.localDescription });
-    }
-
-    if(payload.type === 'answer'){
-      await p.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-    }
-
-    if(payload.type === 'ice' && payload.candidate){
-      try{
-        await p.addIceCandidate(new RTCIceCandidate(payload.candidate));
-      }catch(e){}
-    }
-  }
-
-  async function loop(){
-    try{
-      const list = await apiPull();
-      for(const s of list){
-        await handleSignal(s);
-      }
-    }catch(e){}
-    setTimeout(loop, 1200);
-  }
-
-  startBtn.addEventListener('click', () => start().catch(() => {
+    pendingIce = [];
+    started = false;
     startBtn.disabled = false;
-  }));
+    startBtn.textContent = "Iniciar";
+    micBtn.disabled = true;
+    camBtn.disabled = true;
+    hangBtn.disabled = true;
+    micBtn.textContent = "Silenciar";
+    camBtn.textContent = "Cámara";
+    if (!resetPolling) polling = true;
+  }
 
-  hangBtn.addEventListener('click', () => hang());
+  async function hangUp() {
+    try {
+      await apiPush({ type: "hangup" });
+    } catch (error) {
+      console.error("No se pudo enviar hangup:", error);
+    }
+    cleanup();
+  }
 
-  loop();
+  micBtn.addEventListener("click", () => {
+    const track = localStream?.getAudioTracks()[0];
+    if (!track) return;
+    track.enabled = !track.enabled;
+    micBtn.textContent = track.enabled ? "Silenciar" : "Activar micrófono";
+  });
+
+  camBtn.addEventListener("click", () => {
+    const track = localStream?.getVideoTracks()[0];
+    if (!track) return;
+    track.enabled = !track.enabled;
+    camBtn.textContent = track.enabled ? "Apagar cámara" : "Encender cámara";
+  });
+
+  startBtn.addEventListener("click", startCall);
+  hangBtn.addEventListener("click", hangUp);
+  window.addEventListener("beforeunload", () => {
+    if (started) navigator.sendBeacon?.(pushUrl, JSON.stringify({ type: "hangup" }));
+  });
+
+  pollSignals();
 })();
 </script>
 

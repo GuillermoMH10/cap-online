@@ -334,11 +334,36 @@
         </div>
       {% endif %}
 
-      {% if c.status == 'approved' %}
-        <div class="calls-actions">
-          <a class="btn primary" href="{% url 'call_room' c.id %}">Entrar a sala</a>
-        </div>
-      {% endif %}
+      {{% if call.status == "pending" %}
+    <form method="POST"
+          action="{% url 'accept_call' call.id %}"
+          style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn-accept">
+            Aceptar y entrar
+        </button>
+    </form>
+
+    <form method="POST"
+          action="{% url 'reject_call' call.id %}"
+          style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn-reject">
+            Rechazar
+        </button>
+    </form>
+
+{% elif call.status == "in_progress" %}
+    <a href="{% url 'call_room' call.id %}" class="btn-accept">
+        Volver a la llamada
+    </a>
+
+{% elif call.status == "finished" %}
+    <span class="status-finished">Finalizada</span>
+
+{% elif call.status == "rejected" %}
+    <span class="status-rejected">Rechazada</span>
+{% endif %}
     </div>
   {% empty %}
     <div class="calls-empty">

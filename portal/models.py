@@ -65,29 +65,69 @@ class CallRequest(models.Model):
         ("audio", "Audio"),
         ("video", "Video"),
     )
+
     STATUS = (
         ("pending", "Pendiente"),
-        ("approved", "Aprobada"),
+        ("approved", "Aceptada"),
+        ("in_progress", "En curso"),
         ("rejected", "Rechazada"),
-        ("done", "Realizada"),
+        ("done", "Finalizada"),
+        ("cancelled", "Cancelada"),
     )
 
-    # paciente
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="call_requests")
-    # doctor asignado
-    doctor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_calls")
-    call_type = models.CharField(max_length=10, choices=CALL_TYPES, default="audio")
-    scheduled_for = models.DateTimeField(null=True, blank=True)
-    notes = models.CharField(max_length=255, blank=True)
-    status = models.CharField(max_length=10, choices=STATUS, default="pending")
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="call_requests"
+    )
+
+    doctor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_calls"
+    )
+
+    call_type = models.CharField(
+        max_length=10,
+        choices=CALL_TYPES,
+        default="audio"
+    )
+
+    scheduled_for = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    notes = models.CharField(
+        max_length=255,
+        blank=True
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS,
+        default="pending"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
+
+    started_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    ended_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.user.username} - {self.call_type} - {self.status}"
-
 
 class Appointment(models.Model):
     STATUS = (
@@ -99,18 +139,25 @@ class Appointment(models.Model):
 
     patient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="appointments_as_patient")
     doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="appointments_as_doctor")
+
     start_at = models.DateTimeField()
     end_at = models.DateTimeField()
+
     notes = models.CharField(max_length=255, blank=True)
-    status = models.CharField(max_length=10, choices=STATUS, default="pending")
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS,
+        default="pending"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-start_at"]
 
     def __str__(self):
-        return f"{self.patient.username} -> {self.doctor.username} @ {self.start_at} ({self.status})"
-
+        return f"{self.patient.username} -> {self.doctor.username}"
 
 class CallSignal(models.Model):
     """Señalización simple (SDP/ICE) para WebRTC usando polling."""

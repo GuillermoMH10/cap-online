@@ -8,6 +8,7 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
 from django.http import HttpResponse
+from django.utils import timezone
 from .models import SessionNote
 from .models import CallSignal
 from django.http import JsonResponse
@@ -411,14 +412,37 @@ def call_update_status(request, call_id: int, new_status: str):
     call = get_object_or_404(CallRequest, pk=call_id)
 
     if not _is_doctor(request.user) or call.doctor_id != request.user.id:
-        return HttpResponseBadRequest("not allowed")
+        return HttpResponseBadRequest("No tienes permiso.")
 
-    if new_status not in ("approved", "rejected", "done"):
-        return HttpResponseBadRequest("bad status")
+    if new_status not in ("approved", "rejected", "done", "cancelled"):
+        return HttpResponseBadRequest("Estado inválido.")
 
-    call.status = new_status
-    call.save(update_fields=["status"])
+    if new_status == "approved":
+        call.status = "in_progress"
+        call.started_at = timezone.now()
+        call.save(update_fields=["status", "started_at"])
 
+        # El doctor entra directamente a la sala.
+        return redirect("call_room", call_id=call.id)
+
+    if new_status == "rejected":
+        call.status = "rejected"
+        call.ended_at = timezone.now()
+        call.save(update_fields=["status", "ended_at"])
+        messages.success(request, "La llamada fue rechazada.")
+        return redirect("portal_calls")
+
+    if new_status == "done":
+        call.status = "done"
+        call.ended_at = timezone.now()
+        call.save(update_fields=["status", "ended_at"])
+        messages.success(request, "La llamada fue finalizada.")
+        return redirect("portal_calls")
+
+    call.status = "cancelled"
+    call.ended_at = timezone.now()
+    call.save(update_fields=["status", "ended_at"])
+    messages.success(request, "La llamada fue cancelada.")
     return redirect("portal_calls")
 
 
@@ -440,7 +464,11 @@ def call_status_api(request):
             "notes": c.notes or "",
             "user_name": c.user.get_full_name() or c.user.username,
             "doctor_name": (c.doctor.get_full_name() or c.doctor.username) if c.doctor else "",
-            "room_url": f"/portal/call/{c.id}/room/" if c.status == "approved" else "",
+           "room_url": (
+    f"/portal/call/{c.id}/room/"
+    if c.status in ("approved", "in_progress")
+    else ""
+),
         })
 
     return JsonResponse({
@@ -457,8 +485,8 @@ def call_room(request, call_id: int):
     if request.user.id not in (call.user_id, call.doctor_id):
         return HttpResponseBadRequest("No autorizado")
 
-    if call.status != "approved":
-        messages.error(request, "La llamada todavía no está aprobada.")
+    if call.status not in ("approved", "in_progress"):
+        messages.error(request, "Esta llamada no está disponible.")
         return redirect("portal_calls")
 
     is_doctor = _is_doctor(request.user)
@@ -684,17 +712,46 @@ def crear_admin(request):
 #Nota
 @login_required(login_url="login")
 def mis_notas_clinicas(request):
-    notas = SessionNote.objects.filter(
-        doctor=request.user
-    ).select_related("patient").order_by("-created_at")
+    if not _is_doctor(request.user):
+        messages.error(
+            request,
+            "Solo los doctores pueden consultar historiales clínicos."
+        )
+        return redirect("portal_dashboard")
 
-    return render(request, "portal/mis_notas_clinicas.html", {
-        "notas": notas,
-    })
+    pacientes = (
+        User.objects
+        .filter(patient_notes__doctor=request.user)
+        .distinct()
+        .order_by("first_name", "last_name", "username")
+    )
+
+    pacientes_historial = []
+
+    for paciente in pacientes:
+        notas = SessionNote.objects.filter(
+            doctor=request.user,
+            patient=paciente
+        ).order_by("-created_at")
+
+        pacientes_historial.append({
+            "paciente": paciente,
+            "total_notas": notas.count(),
+            "ultima_nota": notas.first(),
+        })
+
+    return render(
+        request,
+        "portal/mis_notas_clinicas.html",
+        {
+            "pacientes_historial": pacientes_historial,
+            "paciente": None,
+        }
+    )
 @login_required(login_url="login")
 def notas_paciente(request, patient_id):
     if not _is_doctor(request.user):
-        messages.error(request, "Solo los doctores pueden crear notas clínicas.")
+        messages.error(request, "Solo los doctores pueden consultar historiales clínicos.")
         return redirect("portal_dashboard")
 
     paciente = get_object_or_404(User, id=patient_id)
@@ -724,7 +781,8 @@ def notas_paciente(request, patient_id):
     return render(request, "portal/mis_notas_clinicas.html", {
         "paciente": paciente,
         "notas": notas,
-    })
+        "pacientes_historial": None,
+})
 def politica_privacidad(request):
         return render(request, "auth/politica_privacidad.html")
 

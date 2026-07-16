@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  cap_online:
+    build: .
+    container_name: cap_online
+    ports:
+      - "8020:8020"
+    volumes:
+      - .:/app
+    command: python manage.py runserver 0.0.0.0:8020

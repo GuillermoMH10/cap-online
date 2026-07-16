@@ -1,10 +1,11 @@
 from django.urls import path
+#from .api_views import api_usuario_actual
 from . import views
 
 urlpatterns = [
 
     path("", views.landing, name="landing"),
-
+   # path("api/usuario/", api_usuario_actual, name="api_usuario_actual"),
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("signup/", views.signup, name="signup"),

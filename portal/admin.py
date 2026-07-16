@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import DoctorProfile, PatientProfile, Appointment, ChatMessage, CallRequest, CallSignal
 from .models import SessionNote
+from .models import AuditLog
 
 @admin.register(DoctorProfile)
 class DoctorProfileAdmin(admin.ModelAdmin):
@@ -64,3 +65,9 @@ class SessionNoteAdmin(admin.ModelAdmin):
     list_filter = ('estado_emocional', 'created_at')
     search_fields = ('titulo', 'doctor__username', 'patient__username', 'observaciones')
     readonly_fields = ('created_at',)
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ("usuario", "accion", "modulo", "ip", "fecha")
+    search_fields = ("usuario__username", "accion", "modulo")
+    list_filter = ("modulo", "fecha")

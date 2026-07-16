@@ -498,8 +498,13 @@
    Pass this from your view as JSON:
      context['occupied_slots_json'] = json.dumps([...])
 ────────────────────────────────────────────────── */
-const OCCUPIED = new Set({{ occupied_slots_json|default:"[]"|safe }});
+{{ occupied_slots_json|json_script:"occupied-slots-data" }}
 
+<script>
+  const OCCUPIED = new Set(JSON.parse(
+    document.getElementById("occupied-slots-data").textContent
+  ));
+</script>
 // ── Config ──────────────────────────────────────
 const SLOT_DURATION_H = 1;      // hours
 const HOUR_START      = 0;      // 12:00 AM (medianoche)
