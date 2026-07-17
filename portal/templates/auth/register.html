@@ -434,6 +434,112 @@ input{
   padding:12px;
 }
     }
+  
+/* Modal de Política de Privacidad */
+.privacy-link{
+  border:0;
+  background:transparent;
+  padding:0;
+  color:#1a6b4a;
+  font-family:inherit;
+  font-size:inherit;
+  font-weight:800;
+  cursor:pointer;
+  text-decoration:none;
+}
+
+.privacy-link:hover{
+  text-decoration:underline;
+}
+
+.privacy-modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.privacy-modal.active{
+  display:flex;
+}
+
+.privacy-modal-overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(15,23,42,.68);
+  backdrop-filter:blur(4px);
+}
+
+.privacy-modal-content{
+  position:relative;
+  z-index:1;
+  width:min(760px,100%);
+  max-height:88vh;
+  background:#fff;
+  border-radius:22px;
+  box-shadow:0 28px 80px rgba(0,0,0,.28);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+
+.privacy-modal-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:22px 24px;
+  background:#1a6b4a;
+  color:#fff;
+}
+
+.privacy-modal-header h2{
+  margin:0;
+  color:#fff;
+  font-size:26px;
+}
+
+.privacy-modal-close{
+  width:42px;
+  height:42px;
+  border:0;
+  border-radius:50%;
+  background:rgba(255,255,255,.16);
+  color:#fff;
+  font-size:28px;
+  cursor:pointer;
+}
+
+.privacy-modal-body{
+  padding:24px;
+  overflow-y:auto;
+  color:#374151;
+  line-height:1.7;
+  font-size: 13px;
+}
+
+.privacy-modal-body h3{
+  color:#1a6b4a;
+  margin:22px 0 8px;
+  font-size: 16px;
+}
+
+.privacy-modal-body p{
+  margin:0 0 14px;
+}
+
+.privacy-modal-footer{
+  padding:18px 24px 24px;
+  border-top:1px solid #e5e7eb;
+}
+
+body.modal-open{
+  overflow:hidden;
+}
+
   </style>
 </head>
 
@@ -481,7 +587,7 @@ input{
           </div>
         {% endif %}
 
-        <form method="post" action="{% url 'signup' %}" novalidate>
+       <form id="signupForm" method="post" action="{% url 'signup' %}" novalidate>
           {% csrf_token %}
 
           <div class="field">
@@ -527,12 +633,16 @@ input{
           </div>
           <div class="privacy-box">
   <label class="privacy-check">
-    <input type="checkbox" name="acepto_politicas" required>
+    <input id="acepto_politicas" type="checkbox" name="acepto_politicas" required>
     <span>
       He leído y acepto la
-      <a href="{% url 'politica_privacidad' %}" target="_blank">
+      <button
+        type="button"
+        class="privacy-link"
+        id="openPrivacyModal"
+      >
         Política de Privacidad
-      </a>
+      </button>
       y autorizo el tratamiento de mis datos personales para el funcionamiento de CAP Online.
     </span>
 
@@ -542,55 +652,215 @@ input{
           <button class="btn" type="submit">Crear cuenta</button>
         </form>
 
-        <p class="bottom">¿Ya tienes cuenta? <a href="{% url 'login' %}">Iniciar sesión</a></p>
-        <a class="back" href="{% url 'landing' %}">← Volver al inicio</a>
+        <div id="privacyModal" class="privacy-modal" aria-hidden="true">
+          <div class="privacy-modal-overlay" id="privacyOverlay"></div>
 
-      </div>
+          <div
+            class="privacy-modal-content"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="privacyModalTitle"
+          >
+            <div class="privacy-modal-header">
+              <h2 id="privacyModalTitle">Política de Privacidad</h2>
+
+              <button
+                type="button"
+                id="closePrivacyModal"
+                class="privacy-modal-close"
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
+            </div>
+
+            <div class="privacy-modal-body">
+
+<p>
+<strong>Última actualización:</strong> Julio de 2026.
+</p>
+
+<p>
+El Centro de Atención Psicológica (CAP Online) pone a disposición de los
+usuarios la presente Política de Privacidad con la finalidad de informar la
+forma en que se recopilan, utilizan, almacenan y protegen los datos personales
+proporcionados durante el uso de la plataforma.
+</p>
+
+<h3>1. Responsable del tratamiento</h3>
+
+<p>
+CAP Online es responsable del tratamiento de la información personal
+proporcionada por los usuarios registrados dentro del sistema.
+Toda la información será utilizada exclusivamente para brindar los servicios
+ofrecidos por la plataforma.
+</p>
+
+<h3>2. Información recopilada</h3>
+
+<p>
+Durante el proceso de registro y utilización del sistema podrán solicitarse,
+entre otros, los siguientes datos:
+</p>
+
+<ul>
+<li>Nombre completo.</li>
+<li>Correo electrónico.</li>
+<li>Número telefónico.</li>
+<li>Motivo de consulta.</li>
+<li>Historial de citas.</li>
+<li>Mensajes enviados dentro de la plataforma.</li>
+<li>Notas clínicas registradas por el profesional de la salud.</li>
+<li>Información relacionada con videollamadas y consultas.</li>
+</ul>
+
+<h3>3. Finalidad del tratamiento</h3>
+
+<p>
+Los datos personales serán utilizados para:
+</p>
+
+<ul>
+<li>Crear y administrar la cuenta del usuario.</li>
+<li>Programar citas psicológicas.</li>
+<li>Permitir la comunicación entre paciente y especialista.</li>
+<li>Gestionar expedientes clínicos electrónicos.</li>
+<li>Realizar videollamadas para consultas en línea.</li>
+<li>Enviar notificaciones relacionadas con citas y seguimiento.</li>
+<li>Mejorar la calidad de los servicios ofrecidos.</li>
+</ul>
+
+<h3>4. Confidencialidad</h3>
+
+<p>
+Toda la información proporcionada será tratada de manera estrictamente
+confidencial. Solamente el paciente y el profesional autorizado podrán acceder
+a la información clínica registrada dentro del sistema.
+</p>
+
+<p>
+Las contraseñas de acceso nunca se almacenan en texto plano y son protegidas
+mediante los mecanismos de seguridad implementados por Django.
+</p>
+
+<h3>5. Seguridad de la información</h3>
+
+<p>
+CAP Online implementa controles de seguridad para proteger la información
+contra accesos no autorizados, pérdida, alteración o divulgación indebida,
+incluyendo autenticación de usuarios, control de sesiones y comunicación segura
+entre los diferentes módulos del sistema.
+</p>
+
+<h3>6. Derechos del usuario</h3>
+
+<p>
+El usuario podrá solicitar en cualquier momento la actualización o corrección
+de la información registrada cuando ésta resulte incorrecta o se encuentre
+desactualizada.
+</p>
+
+<h3>7. Conservación de la información</h3>
+
+<p>
+La información permanecerá almacenada únicamente durante el tiempo necesario
+para la correcta prestación del servicio o mientras exista una relación activa
+entre el usuario y la plataforma.
+</p>
+
+<h3>8. Aceptación</h3>
+
+<p>
+Al seleccionar la casilla correspondiente y continuar con el proceso de
+registro, el usuario declara haber leído y comprendido la presente Política de
+Privacidad, aceptando el tratamiento de sus datos personales conforme a los
+términos aquí establecidos.
+</p>
+
+</div>
     </section>
 
   </main>
 
-  <script>
-    const password = document.getElementById("password");
-    const password2 = document.getElementById("password2");
-    const matchText = document.getElementById("matchText");
+ <script>
+  const password = document.getElementById("password");
+  const password2 = document.getElementById("password2");
+  const matchText = document.getElementById("matchText");
 
-    const rules = {
-      ruleLength: value => value.length >= 8,
-      ruleUpper: value => /[A-ZÁÉÍÓÚÑ]/.test(value),
-      ruleNumber: value => /[0-9]/.test(value),
-      ruleSpecial: value => /[^A-Za-z0-9ÁÉÍÓÚáéíóúÑñ]/.test(value),
-    };
+  const privacyModal = document.getElementById("privacyModal");
+  const openPrivacyModal = document.getElementById("openPrivacyModal");
+  const closePrivacyModal = document.getElementById("closePrivacyModal");
+  const privacyOverlay = document.getElementById("privacyOverlay");
+  const acceptPrivacyModal = document.getElementById("acceptPrivacyModal");
+  const privacyCheckbox = document.getElementById("acepto_politicas");
 
-    function validatePassword(){
-      const value = password.value;
+  const rules = {
+    ruleLength: value => value.length >= 8,
+    ruleUpper: value => /[A-ZÁÉÍÓÚÑ]/.test(value),
+    ruleNumber: value => /[0-9]/.test(value),
+    ruleSpecial: value => /[^A-Za-z0-9ÁÉÍÓÚáéíóúÑñ]/.test(value),
+  };
 
-      Object.keys(rules).forEach(id => {
-        const el = document.getElementById(id);
-        if(rules[id](value)){
-          el.classList.add("valid");
-        }else{
-          el.classList.remove("valid");
-        }
-      });
+  function validatePassword(){
+    const value = password.value;
 
-      if(password2.value.length > 0 && password.value === password2.value){
-        matchText.textContent = "Las contraseñas coinciden.";
-        matchText.classList.add("valid");
-        matchText.classList.remove("invalid");
-      }else if(password2.value.length > 0){
-        matchText.textContent = "Las contraseñas no coinciden.";
-        matchText.classList.add("invalid");
-        matchText.classList.remove("valid");
+    Object.keys(rules).forEach(id => {
+      const element = document.getElementById(id);
+
+      if(rules[id](value)){
+        element.classList.add("valid");
       }else{
-        matchText.textContent = "Las contraseñas deben coincidir.";
-        matchText.classList.remove("valid","invalid");
+        element.classList.remove("valid");
       }
-    }
+    });
 
-    password.addEventListener("input", validatePassword);
-    password2.addEventListener("input", validatePassword);
-  </script>
+    if(password2.value.length > 0 && password.value === password2.value){
+      matchText.textContent = "Las contraseñas coinciden.";
+      matchText.classList.add("valid");
+      matchText.classList.remove("invalid");
+    }else if(password2.value.length > 0){
+      matchText.textContent = "Las contraseñas no coinciden.";
+      matchText.classList.add("invalid");
+      matchText.classList.remove("valid");
+    }else{
+      matchText.textContent = "Las contraseñas deben coincidir.";
+      matchText.classList.remove("valid", "invalid");
+    }
+  }
+
+  function showPrivacyModal(){
+    privacyModal.classList.add("active");
+    privacyModal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+  }
+
+  function hidePrivacyModal(){
+    privacyModal.classList.remove("active");
+    privacyModal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
+  }
+
+  password.addEventListener("input", validatePassword);
+  password2.addEventListener("input", validatePassword);
+
+  openPrivacyModal.addEventListener("click", showPrivacyModal);
+  closePrivacyModal.addEventListener("click", hidePrivacyModal);
+  privacyOverlay.addEventListener("click", hidePrivacyModal);
+
+  acceptPrivacyModal.addEventListener("click", function(){
+    privacyCheckbox.checked = true;
+    hidePrivacyModal();
+  });
+
+  document.addEventListener("keydown", function(event){
+    if(event.key === "Escape"){
+      hidePrivacyModal();
+    }
+  });
+
+  // Limpia el borrador antiguo que había quedado guardado.
+  localStorage.removeItem("capOnlineSignupDraft");
+</script>
 
 </body>
 </html>

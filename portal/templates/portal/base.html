@@ -619,10 +619,11 @@
     <i class="ti ti-home" style="font-size:20px" aria-hidden="true"></i>
     <span class="label">Inicio</span>
   </a>
-  <a href="#">
-    <i class="ti ti-bell" style="font-size:20px" aria-hidden="true"></i>
-    <span class="label">Actividad</span>
-  </a>
+  <a href="{% url 'portal_notifications' %}"
+   class="{% if request.resolver_match.url_name == 'portal_notifications' %}active{% endif %}">
+  <i class="ti ti-bell" style="font-size:20px" aria-hidden="true"></i>
+  <span class="label">Actividad</span>
+ </a>
   <a href="{% url 'portal_chat' %}" class="{% if request.resolver_match.url_name == 'portal_chat' %}active{% endif %}">
     <i class="ti ti-message-circle" style="font-size:20px" aria-hidden="true"></i>
     <span class="label">Chat</span>
@@ -636,10 +637,6 @@
   <a href="{% url 'portal_calendar' %}" class="{% if request.resolver_match.url_name == 'portal_calendar' %}active{% endif %}">
     <i class="ti ti-calendar" style="font-size:20px" aria-hidden="true"></i>
     <span class="label">Calendario</span>
-  </a>
-  <a href="{% url 'mis_notas_clinicas' %}" class="{% if request.resolver_match.url_name == 'mis_notas_clinicas' %}active{% endif %}">
-    <i class="ti ti-clipboard-heart" style="font-size:20px" aria-hidden="true"></i>
-    <span class="label">Notas</span>
   </a>
   <a href="{% url 'portal_calls' %}" class="{% if request.resolver_match.url_name == 'portal_calls' %}active{% endif %}">
     <i class="ti ti-phone" style="font-size:20px" aria-hidden="true"></i>

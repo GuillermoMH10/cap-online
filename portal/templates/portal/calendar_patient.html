@@ -491,20 +491,17 @@
 
 </div><!-- /citas-wrap -->
 
-<script>
-/* ────────────────────────────────────────────────
-   Occupied slots from Django  →  list of ISO strings
-   e.g. ["2026-03-20T09:30:00", "2026-03-20T11:00:00"]
-   Pass this from your view as JSON:
-     context['occupied_slots_json'] = json.dumps([...])
-────────────────────────────────────────────────── */
+{# Datos enviados por Django #}
 {{ occupied_slots_json|json_script:"occupied-slots-data" }}
 
 <script>
-  const OCCUPIED = new Set(JSON.parse(
-    document.getElementById("occupied-slots-data").textContent
-  ));
-</script>
+const OCCUPIED = new Set(
+    JSON.parse(
+        document.getElementById("occupied-slots-data").textContent
+    )
+);
+
+// ── Config ──────────────────────────────────────
 // ── Config ──────────────────────────────────────
 const SLOT_DURATION_H = 1;      // hours
 const HOUR_START      = 0;      // 12:00 AM (medianoche)

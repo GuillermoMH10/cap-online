@@ -285,7 +285,18 @@
     proyecto académico.
   </p>
 
-  <a class="back" href="{% url 'signup' %}">← Volver al registro</a>
+  <a
+  class="back"
+  href="{% url 'signup' %}"
+  onclick="
+    if (window.opener && !window.opener.closed) {
+      window.close();
+      return false;
+    }
+  "
+>
+  ← Volver al registro
+</a>
 
 </main>
 

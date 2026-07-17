@@ -6,6 +6,8 @@
 {% block content %}
 
 <style>
+
+.btn-accept,
 .call-page{
   display:grid;
   grid-template-columns:minmax(0,1fr) 380px;
@@ -42,14 +44,16 @@
 }
 
 .live-badge{
-  background:#eaf7ef;
-  color:#2f7a3d;
-  border:1px solid #bee5c8;
+  background:#fff8dd;
+  color:#8a6116;
+  border:1px solid #f1d58a;
   padding:6px 13px;
   border-radius:999px;
   font-size:12px;
   font-weight:800;
 }
+.live-badge.connected{background:#eaf7ef;color:#2f7a3d;border-color:#bee5c8;}
+.live-badge.error{background:#fdecec;color:#b42318;border-color:#f4b8b4;}
 
 .video-stage{
   position:relative;
@@ -60,9 +64,13 @@
 #remote{
   width:100%;
   height:100%;
-  object-fit:cover;
   background:#0f1720;
+  position:relative;
 }
+
+.agora-video{width:100%;height:100%;overflow:hidden;}
+.agora-video video{width:100% !important;height:100% !important;object-fit:cover !important;}
+.waiting-message{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:30px;color:rgba(255,255,255,.78);font-size:15px;text-align:center;background:radial-gradient(circle at center, rgba(0,77,97,.28), transparent 58%);}
 
 .local-box{
   position:absolute;
@@ -80,7 +88,7 @@
 #local{
   width:100%;
   height:100%;
-  object-fit:cover;
+  background:#000;
 }
 
 .local-label{
@@ -220,11 +228,11 @@
           {% endif %}
         </div>
       </div>
-      <div class="live-badge">● En sesión</div>
+      <div class="live-badge" id="connectionBadge">● Sin conectar</div>
     </div>
 
     <div class="video-stage">
-      <video id="remote" autoplay playsinline></video>
+      <div id="remote" class="agora-video"><div id="waitingMessage" class="waiting-message">Esperando a que la otra persona entre a la llamada…</div></div>
 
       <div class="patient-pill">
         {% if is_doctor %}
@@ -235,16 +243,23 @@
       </div>
 
       <div class="local-box">
-        <video id="local" autoplay playsinline muted></video>
+        <div id="local" class="agora-video"></div>
         <div class="local-label">Tú</div>
       </div>
 
       <div class="call-controls">
-        <button id="startBtn" type="button">Iniciar</button>
-        <button id="micBtn" type="button" disabled>Silenciar</button>
-        <button id="camBtn" type="button" disabled>Cámara</button>
-        <button id="hangBtn" type="button" disabled>Colgar</button>
-      </div>
+  <button id="startBtn" type="button">Iniciar</button>
+  <button id="micBtn" type="button" disabled>Silenciar</button>
+  <button id="camBtn" type="button" disabled>Cámara</button>
+  <button id="hangBtn" type="button" disabled>Colgar</button>
+</div>
+
+<form id="finishCallForm"
+      method="post"
+      action="{% url 'call_update_status' call.id 'done' %}"
+      style="display:none;">
+  {% csrf_token %}
+</form>
     </div>
   </section>
 
@@ -297,270 +312,177 @@
 
 </div>
 
+<script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.22.2.js"></script>
+
 <script>
 (function () {
-  const meId = Number("{{ request.user.id }}");
-  const callType = "{{ call.call_type|escapejs }}";
-  const isDoctor = {{ is_doctor|yesno:"true,false" }};
-  const isInitiator = !isDoctor; // El paciente crea la oferta; el doctor responde.
+  "use strict";
 
-  const pullUrl = "{% url 'call_signals_pull' room_key %}";
-  const pushUrl = "{% url 'call_signals_push' room_key %}";
+  const APP_ID = "{{ agora_app_id|default:''|escapejs }}";
+  const TOKEN = "{{ agora_token|default:''|escapejs }}";
+  const CHANNEL = "{{ agora_channel|default:'cap-online'|escapejs }}";
+  const CALL_TYPE = "{{ call.call_type|escapejs }}";
 
   const startBtn = document.getElementById("startBtn");
   const micBtn = document.getElementById("micBtn");
   const camBtn = document.getElementById("camBtn");
   const hangBtn = document.getElementById("hangBtn");
-  const localVideo = document.getElementById("local");
-  const remoteVideo = document.getElementById("remote");
+  const localContainer = document.getElementById("local");
+  const remoteContainer = document.getElementById("remote");
+  const waitingMessage = document.getElementById("waitingMessage");
+  const connectionBadge = document.getElementById("connectionBadge");
+  const finishCallForm = document.getElementById("finishCallForm");
 
-  let pc = null;
-  let localStream = null;
-  let lastSignalId = 0;
-  let pendingIce = [];
-  let started = false;
-  let polling = true;
+  const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+  let localAudioTrack = null;
+  let localVideoTrack = null;
+  let joined = false;
+  let leaving = false;
+  let microphoneMuted = false;
+  let cameraMuted = false;
 
-  function getCookie(name) {
-    const item = document.cookie
-      .split(";")
-      .map(v => v.trim())
-      .find(v => v.startsWith(name + "="));
-    return item ? decodeURIComponent(item.slice(name.length + 1)) : "";
+  function setStatus(text, state = "") {
+    connectionBadge.textContent = `● ${text}`;
+    connectionBadge.classList.remove("connected", "error");
+    if (state) connectionBadge.classList.add(state);
   }
 
-  async function apiPush(payload) {
-    const response = await fetch(pushUrl, {
-      method: "POST",
-      credentials: "same-origin",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCookie("csrftoken")
-      },
-      body: JSON.stringify(payload)
-    });
+  function validateConfiguration() {
+    if (!window.AgoraRTC) throw new Error("No fue posible cargar el SDK de Agora.");
+    if (!APP_ID) throw new Error("Falta agora_app_id en el contexto de Django.");
+    if (!TOKEN) throw new Error("Falta agora_token en el contexto de Django.");
+    if (!CHANNEL) throw new Error("Falta agora_channel en el contexto de Django.");
+  }
 
-    if (!response.ok) {
-      throw new Error(`No se pudo enviar señal (${response.status})`);
+  async function createLocalTracks() {
+    if (localAudioTrack || localVideoTrack) return;
+    if (CALL_TYPE === "video") {
+      [localAudioTrack, localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
+        { AEC: true, ANS: true, AGC: true },
+        { encoderConfig: "480p_1", optimizationMode: "motion" }
+      );
+      localVideoTrack.play(localContainer);
+      camBtn.disabled = false;
+    } else {
+      localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({ AEC: true, ANS: true, AGC: true });
+      localContainer.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:32px;">🎙️</div>';
+      camBtn.disabled = true;
     }
-  }
-
-  async function apiPull() {
-    const response = await fetch(`${pullUrl}?after=${lastSignalId}`, {
-      credentials: "same-origin",
-      cache: "no-store"
-    });
-    if (!response.ok) {
-      throw new Error(`No se pudieron leer señales (${response.status})`);
-    }
-    const data = await response.json();
-    return data.signals || [];
-  }
-
-  function createPeerConnection() {
-    if (pc) return pc;
-
-    pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" }
-        // Para producción entre redes distintas agrega aquí tu servidor TURN.
-      ]
-    });
-
-    pc.onicecandidate = async event => {
-      if (!event.candidate) return;
-      try {
-        await apiPush({ type: "ice", candidate: event.candidate.toJSON() });
-      } catch (error) {
-        console.error("Error enviando ICE:", error);
-      }
-    };
-
-    pc.ontrack = event => {
-      const [stream] = event.streams;
-      if (stream) remoteVideo.srcObject = stream;
-    };
-
-    pc.onconnectionstatechange = () => {
-      console.log("WebRTC:", pc?.connectionState);
-      if (pc?.connectionState === "connected") {
-        startBtn.textContent = "Conectado";
-      }
-      if (["failed", "disconnected"].includes(pc?.connectionState)) {
-        startBtn.textContent = "Reconectar";
-        startBtn.disabled = false;
-      }
-    };
-
-    return pc;
-  }
-
-  async function openMedia() {
-    if (localStream) return localStream;
-
-    const constraints = callType === "video"
-      ? { video: true, audio: true }
-      : { video: false, audio: true };
-
-    localStream = await navigator.mediaDevices.getUserMedia(constraints);
-    localVideo.srcObject = localStream;
-
-    const peer = createPeerConnection();
-    localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
-
     micBtn.disabled = false;
-    camBtn.disabled = callType !== "video";
     hangBtn.disabled = false;
-    return localStream;
   }
 
-  async function flushPendingIce() {
-    if (!pc?.remoteDescription) return;
-    for (const candidate of pendingIce) {
-      await pc.addIceCandidate(candidate);
-    }
-    pendingIce = [];
-  }
-
-  async function startCall() {
-    if (started) return;
-    started = true;
+  async function joinCall() {
+    if (joined) return;
     startBtn.disabled = true;
-
+    startBtn.textContent = "Conectando…";
+    setStatus("Conectando");
     try {
-      await openMedia();
-
-      if (isInitiator) {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        await apiPush({ type: "offer", sdp: pc.localDescription });
-        startBtn.textContent = "Llamando…";
-      } else {
-        startBtn.textContent = "Esperando llamada…";
-      }
+      validateConfiguration();
+      await createLocalTracks();
+      await client.join(APP_ID, CHANNEL, TOKEN, null);
+      await client.publish([localAudioTrack, localVideoTrack].filter(Boolean));
+      joined = true;
+      startBtn.textContent = "Conectado";
+      setStatus("En sesión", "connected");
     } catch (error) {
-      console.error("No se pudo iniciar:", error);
-      alert("No se pudo iniciar la llamada. Revisa permisos de cámara/micrófono y la consola.");
-      started = false;
-      startBtn.disabled = false;
-      startBtn.textContent = "Iniciar";
-    }
-  }
-
-  async function handleSignal(signal) {
-    lastSignalId = Math.max(lastSignalId, signal.id);
-    if (Number(signal.sender_id) === meId) return;
-
-    const payload = signal.payload || {};
-    const peer = createPeerConnection();
-
-    if (payload.type === "offer") {
-      await openMedia();
-      await peer.setRemoteDescription(payload.sdp);
-      await flushPendingIce();
-
-      const answer = await peer.createAnswer();
-      await peer.setLocalDescription(answer);
-      await apiPush({ type: "answer", sdp: peer.localDescription });
-      started = true;
-      startBtn.disabled = true;
-      startBtn.textContent = "Conectando…";
-      return;
-    }
-
-    if (payload.type === "answer") {
-      if (peer.signalingState !== "have-local-offer") return;
-      await peer.setRemoteDescription(payload.sdp);
-      await flushPendingIce();
-      return;
-    }
-
-    if (payload.type === "ice" && payload.candidate) {
-      const candidate = new RTCIceCandidate(payload.candidate);
-      if (peer.remoteDescription) {
-        await peer.addIceCandidate(candidate);
+      console.error("Error al conectar con Agora:", error);
+      setStatus("Error de conexión", "error");
+      let message = "No fue posible entrar a la videollamada.";
+      if (String(error?.message || "").toLowerCase().includes("token")) {
+        message += " El token pudo haber caducado o no coincide con el canal.";
       } else {
-        pendingIce.push(candidate);
+        message += " Revisa permisos de cámara y micrófono.";
       }
-      return;
-    }
-
-    if (payload.type === "hangup") {
-      cleanup(false);
-      alert("La otra persona finalizó la llamada.");
+      alert(message);
+      startBtn.disabled = false;
+      startBtn.textContent = "Reintentar";
     }
   }
 
-  async function pollSignals() {
-    while (polling) {
-      try {
-        const signals = await apiPull();
-        for (const signal of signals) {
-          await handleSignal(signal);
-        }
-      } catch (error) {
-        console.error("Error de señalización:", error);
+  client.on("user-published", async (user, mediaType) => {
+    try {
+      await client.subscribe(user, mediaType);
+      if (mediaType === "video" && user.videoTrack) {
+        waitingMessage.style.display = "none";
+        user.videoTrack.play(remoteContainer);
       }
-      await new Promise(resolve => setTimeout(resolve, 900));
+      if (mediaType === "audio" && user.audioTrack) user.audioTrack.play();
+      setStatus("En sesión", "connected");
+    } catch (error) {
+      console.error("No fue posible recibir el contenido remoto:", error);
     }
+  });
+
+  client.on("user-unpublished", (user, mediaType) => {
+    if (mediaType === "video") {
+      remoteContainer.querySelectorAll("video").forEach(video => video.remove());
+      waitingMessage.style.display = "flex";
+      waitingMessage.textContent = "La otra persona apagó su cámara.";
+    }
+  });
+
+  client.on("user-left", () => {
+    remoteContainer.querySelectorAll("video").forEach(video => video.remove());
+    waitingMessage.style.display = "flex";
+    waitingMessage.textContent = "La otra persona salió de la llamada.";
+  });
+
+  client.on("connection-state-change", (currentState) => {
+    if (currentState === "CONNECTED") setStatus("En sesión", "connected");
+    else if (currentState === "RECONNECTING") setStatus("Reconectando");
+    else if (currentState === "DISCONNECTED" && joined && !leaving) setStatus("Desconectado", "error");
+  });
+
+  async function toggleMicrophone() {
+    if (!localAudioTrack) return;
+    microphoneMuted = !microphoneMuted;
+    await localAudioTrack.setMuted(microphoneMuted);
+    micBtn.textContent = microphoneMuted ? "Activar micrófono" : "Silenciar";
   }
 
-  function cleanup(resetPolling = true) {
-    if (pc) {
-      pc.ontrack = null;
-      pc.onicecandidate = null;
-      pc.close();
-      pc = null;
-    }
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-      localStream = null;
-    }
+  async function toggleCamera() {
+    if (!localVideoTrack) return;
+    cameraMuted = !cameraMuted;
+    await localVideoTrack.setMuted(cameraMuted);
+    camBtn.textContent = cameraMuted ? "Encender cámara" : "Apagar cámara";
+  }
 
-    localVideo.srcObject = null;
-    remoteVideo.srcObject = null;
-    pendingIce = [];
-    started = false;
-    startBtn.disabled = false;
-    startBtn.textContent = "Iniciar";
+  async function leaveAgora() {
+    if (leaving) return;
+    leaving = true;
+    startBtn.disabled = true;
     micBtn.disabled = true;
     camBtn.disabled = true;
     hangBtn.disabled = true;
-    micBtn.textContent = "Silenciar";
-    camBtn.textContent = "Cámara";
-    if (!resetPolling) polling = true;
+    setStatus("Finalizando");
+    try {
+      if (localAudioTrack) { localAudioTrack.stop(); localAudioTrack.close(); localAudioTrack = null; }
+      if (localVideoTrack) { localVideoTrack.stop(); localVideoTrack.close(); localVideoTrack = null; }
+      if (joined) { await client.leave(); joined = false; }
+    } catch (error) {
+      console.error("Error al salir de Agora:", error);
+    }
   }
 
   async function hangUp() {
-    try {
-      await apiPush({ type: "hangup" });
-    } catch (error) {
-      console.error("No se pudo enviar hangup:", error);
-    }
-    cleanup();
+    await leaveAgora();
+    if (finishCallForm) finishCallForm.submit();
+    else window.location.href = "{% url 'portal_calls' %}";
   }
 
-  micBtn.addEventListener("click", () => {
-    const track = localStream?.getAudioTracks()[0];
-    if (!track) return;
-    track.enabled = !track.enabled;
-    micBtn.textContent = track.enabled ? "Silenciar" : "Activar micrófono";
-  });
-
-  camBtn.addEventListener("click", () => {
-    const track = localStream?.getVideoTracks()[0];
-    if (!track) return;
-    track.enabled = !track.enabled;
-    camBtn.textContent = track.enabled ? "Apagar cámara" : "Encender cámara";
-  });
-
-  startBtn.addEventListener("click", startCall);
+  startBtn.addEventListener("click", joinCall);
+  micBtn.addEventListener("click", toggleMicrophone);
+  camBtn.addEventListener("click", toggleCamera);
   hangBtn.addEventListener("click", hangUp);
-  window.addEventListener("beforeunload", () => {
-    if (started) navigator.sendBeacon?.(pushUrl, JSON.stringify({ type: "hangup" }));
-  });
 
-  pollSignals();
+  window.addEventListener("pagehide", () => {
+    if (joined && !leaving) {
+      localAudioTrack?.close();
+      localVideoTrack?.close();
+      client.leave().catch(() => {});
+    }
+  });
 })();
 </script>
 

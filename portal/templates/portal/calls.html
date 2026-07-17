@@ -175,7 +175,17 @@
   .calls-item-bar.pending  { background: linear-gradient(90deg, #B45309, #F59E0B); }
   .calls-item-bar.approved { background: linear-gradient(90deg, #059669, #6EE7B7); }
   .calls-item-bar.rejected { background: linear-gradient(90deg, #DC2626, #F87171); }
+  .calls-item-bar.in_progress {
+  background: linear-gradient(90deg, #2563EB, #60A5FA);
+}
 
+.calls-item-bar.done {
+  background: linear-gradient(90deg, #64748B, #CBD5E1);
+}
+
+.calls-item-bar.cancelled {
+  background: linear-gradient(90deg, #7C3AED, #C4B5FD);
+}
   .calls-item-body {
     padding: 14px 18px;
     display: flex; justify-content: space-between;
@@ -214,6 +224,8 @@
   .chip-pending  { background: #FEF3C7; color: #92400E; }
   .chip-approved { background: #D1FAE5; color: #065F46; }
   .chip-rejected { background: #FEE2E2; color: #991B1B; }
+  .chip-progress { background: #DBEAFE; color: #1D4ED8; }
+  .chip-done     { background: #E2E8F0; color: #475569; }
 
   .calls-actions {
     padding: 10px 18px 14px;
@@ -265,7 +277,7 @@
           <option value="video">Video</option>
         </select>
         <input name="notes" placeholder="Notas (opcional)" />
-        <button class="btn primary" type="submit">Enviar solicitud</button>
+        <button class="btn primary" type="submit">📞 Solicitar llamada</button>
       </form>
     </div>
   </div>
@@ -320,50 +332,74 @@
         </div>
 
         <span class="calls-chip
-          {% if c.status == 'pending' %}chip-pending
-          {% elif c.status == 'approved' %}chip-approved
-          {% else %}chip-rejected{% endif %}">
+  {% if c.status == 'pending' %}
+    chip-pending
+  {% elif c.status == 'approved' or c.status == 'in_progress' %}
+    chip-progress
+  {% elif c.status == 'done' %}
+    chip-done
+  {% else %}
+    chip-rejected
+  {% endif %}">
           {{ c.get_status_display }}
         </span>
       </div>
 
       {% if is_doctor and c.status == 'pending' %}
-        <div class="calls-actions">
-          <form method="post" action="{% url 'call_update_status' c.id 'approved' %}">{% csrf_token %}<button class="btn primary" type="submit">Aprobar</button></form>
-          <form method="post" action="{% url 'call_update_status' c.id 'rejected' %}">{% csrf_token %}<button class="btn" type="submit">Rechazar</button></form>
-        </div>
-      {% endif %}
+  <div class="calls-actions">
 
-      {{% if call.status == "pending" %}
-    <form method="POST"
-          action="{% url 'accept_call' call.id %}"
-          style="display:inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn-accept">
-            Aceptar y entrar
-        </button>
+    <form method="post"
+          action="{% url 'call_update_status' c.id 'approved' %}">
+      {% csrf_token %}
+      <button class="btn primary" type="submit">
+        Aceptar y entrar
+      </button>
     </form>
 
-    <form method="POST"
-          action="{% url 'reject_call' call.id %}"
-          style="display:inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn-reject">
-            Rechazar
-        </button>
+    <form method="post"
+          action="{% url 'call_update_status' c.id 'rejected' %}">
+      {% csrf_token %}
+      <button class="btn" type="submit">
+        Rechazar
+      </button>
     </form>
 
-{% elif call.status == "in_progress" %}
-    <a href="{% url 'call_room' call.id %}" class="btn-accept">
-        Volver a la llamada
-    </a>
-
-{% elif call.status == "finished" %}
-    <span class="status-finished">Finalizada</span>
-
-{% elif call.status == "rejected" %}
-    <span class="status-rejected">Rechazada</span>
+  </div>
 {% endif %}
+
+{% if c.status == 'approved' or c.status == 'in_progress' %}
+  <div class="calls-actions">
+    <a class="btn primary" href="{% url 'call_room' c.id %}">
+      Entrar a llamada
+    </a>
+  </div>
+{% endif %}
+
+{% if c.status == 'done' %}
+  <div class="calls-actions">
+    <span class="calls-chip chip-done">
+      Llamada finalizada
+    </span>
+  </div>
+{% endif %}
+
+{% if c.status == 'rejected' %}
+  <div class="calls-actions">
+    <span class="calls-chip chip-rejected">
+      Llamada rechazada
+    </span>
+  </div>
+{% endif %}
+
+{% if c.status == 'cancelled' %}
+  <div class="calls-actions">
+    <span class="calls-chip chip-rejected">
+      Llamada cancelada
+    </span>
+  </div>
+{% endif %}
+
+
     </div>
   {% empty %}
     <div class="calls-empty">

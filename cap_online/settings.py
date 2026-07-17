@@ -25,6 +25,8 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
     "10.36.189.52",
+    "192.168.0.9"
+    "10.10.204.236",
     "cap-online.onrender.com",
 ]
 
@@ -201,3 +203,8 @@ EMAIL_USE_SSL = True
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Agora RTC
+AGORA_APP_ID = os.environ.get("AGORA_APP_ID", "")
+AGORA_TEMP_TOKEN = os.environ.get("AGORA_TEMP_TOKEN", "")
+AGORA_CHANNEL = os.environ.get("AGORA_CHANNEL", "cap-online")
