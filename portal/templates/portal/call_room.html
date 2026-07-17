@@ -372,33 +372,106 @@
     hangBtn.disabled = false;
   }
 
-  async function joinCall() {
-    if (joined) return;
-    startBtn.disabled = true;
-    startBtn.textContent = "Conectando…";
-    setStatus("Conectando");
-    try {
-      validateConfiguration();
-      await createLocalTracks();
-      await client.join(APP_ID, CHANNEL, TOKEN, null);
-      await client.publish([localAudioTrack, localVideoTrack].filter(Boolean));
-      joined = true;
-      startBtn.textContent = "Conectado";
-      setStatus("En sesión", "connected");
-    } catch (error) {
-      console.error("Error al conectar con Agora:", error);
-      setStatus("Error de conexión", "error");
-      let message = "No fue posible entrar a la videollamada.";
-      if (String(error?.message || "").toLowerCase().includes("token")) {
-        message += " El token pudo haber caducado o no coincide con el canal.";
-      } else {
-        message += " Revisa permisos de cámara y micrófono.";
-      }
-      alert(message);
-      startBtn.disabled = false;
-      startBtn.textContent = "Reintentar";
-    }
+async function joinCall() {
+  if (joined) return;
+
+  startBtn.disabled = true;
+  startBtn.textContent = "Conectando…";
+  setStatus("Verificando configuración");
+
+  console.log("CONFIGURACIÓN AGORA:", {
+    appIdExiste: Boolean(APP_ID),
+    appIdLongitud: APP_ID.length,
+    tokenExiste: Boolean(TOKEN),
+    tokenLongitud: TOKEN.length,
+    canal: CHANNEL,
+    tipoLlamada: CALL_TYPE
+  });
+
+  if (!APP_ID || !TOKEN || !CHANNEL) {
+    const faltantes = [];
+
+    if (!APP_ID) faltantes.push("AGORA_APP_ID");
+    if (!TOKEN) faltantes.push("AGORA_TEMP_TOKEN");
+    if (!CHANNEL) faltantes.push("AGORA_CHANNEL");
+
+    alert(
+      "Faltan variables de Agora:\n\n" +
+      faltantes.join("\n")
+    );
+
+    setStatus("Configuración incompleta", "error");
+    startBtn.disabled = false;
+    startBtn.textContent = "Reintentar";
+    return;
   }
+
+  try {
+    setStatus("Solicitando cámara y micrófono");
+    await createLocalTracks();
+
+    console.log("Cámara y micrófono abiertos correctamente.");
+  } catch (mediaError) {
+    console.error("ERROR DE CÁMARA/MICRÓFONO:", mediaError);
+
+    alert(
+      "Error de cámara o micrófono.\n\n" +
+      "Código: " +
+      (mediaError?.code || mediaError?.name || "SIN_CODIGO") +
+      "\nDetalle: " +
+      (mediaError?.message || String(mediaError))
+    );
+
+    setStatus("Error de dispositivo", "error");
+    startBtn.disabled = false;
+    startBtn.textContent = "Reintentar";
+    return;
+  }
+
+  try {
+    setStatus("Entrando al canal de Agora");
+
+    const uid = await client.join(
+      APP_ID,
+      CHANNEL,
+      TOKEN,
+      null
+    );
+
+    console.log("Entrada correcta a Agora. UID:", uid);
+
+    const tracksToPublish = [
+      localAudioTrack,
+      localVideoTrack
+    ].filter(Boolean);
+
+    await client.publish(tracksToPublish);
+
+    console.log("Audio y video publicados correctamente.");
+
+    joined = true;
+    startBtn.textContent = "Conectado";
+    setStatus("En sesión", "connected");
+  } catch (agoraError) {
+    console.error("ERROR COMPLETO DE AGORA:", agoraError);
+    console.error("CÓDIGO:", agoraError?.code);
+    console.error("MENSAJE:", agoraError?.message);
+
+    alert(
+      "Error al entrar a Agora.\n\n" +
+      "Código: " +
+      (agoraError?.code || agoraError?.name || "SIN_CODIGO") +
+      "\nDetalle: " +
+      (agoraError?.message || String(agoraError)) +
+      "\n\nCanal: " +
+      CHANNEL
+    );
+
+    setStatus("Error de conexión", "error");
+    startBtn.disabled = false;
+    startBtn.textContent = "Reintentar";
+  }
+}
 
   client.on("user-published", async (user, mediaType) => {
     try {
@@ -410,8 +483,12 @@
       if (mediaType === "audio" && user.audioTrack) user.audioTrack.play();
       setStatus("En sesión", "connected");
     } catch (error) {
-      console.error("No fue posible recibir el contenido remoto:", error);
-    }
+    console.error("ERROR COMPLETO:", error);
+    console.error("Código:", error.code);
+    console.error("Mensaje:", error.message);
+
+    alert(error.message);
+}
   });
 
   client.on("user-unpublished", (user, mediaType) => {
