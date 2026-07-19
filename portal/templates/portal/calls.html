@@ -1,48 +1,18 @@
 {% extends "portal/base.html" %}
 
-{% block title %}Llamadas | Portal{% endblock %}
-<script>
-(function(){
+{% block title %}Llamadas deshabilitadas | Portal{% endblock %}
 
-  let redirected = false;
-
-  async function checkCalls(){
-    try{
-
-      const res = await fetch("{% url 'call_status_api' %}");
-
-      if(!res.ok) return;
-
-      const data = await res.json();
-
-      if(!data.ok) return;
-
-      const calls = data.calls || [];
-
-      // buscar llamada aprobada
-      const approved = calls.find(c => c.status === "approved" && c.room_url);
-
-      if(approved && !redirected){
-        redirected = true;
-        window.location.href = approved.room_url;
-      }
-
-    }catch(e){
-      console.log("Error consultando llamadas:", e);
-    }
-  }
-
-  // revisar cada 2.5 segundos
-  setInterval(checkCalls, 2500);
-
-  // revisar inmediatamente al cargar
-  checkCalls();
-
-})();
-</script>
-{% block page_title %}Llamadas{% endblock %}
+{% block page_title %}Funcionalidad deshabilitada{% endblock %}
 
 {% block content %}
+
+<div class="card" style="padding:24px; text-align:center;">
+  <h2>El módulo de llamadas está deshabilitado temporalmente</h2>
+  <p>Esta sección no está disponible en este momento. Vuelve al panel de control o utiliza otras funciones del portal.</p>
+  <a class="btn primary" href="{% url 'portal_dashboard' %}">Volver al dashboard</a>
+</div>
+
+{% endblock %}
 
 <style>
 /* ── Responsive para esta página ── */

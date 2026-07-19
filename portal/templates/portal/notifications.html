@@ -235,13 +235,6 @@
     </div>
   </div>
   <div class="notif-summary-item">
-    <div class="notif-summary-num">{{ call_requests|length }}</div>
-    <div class="notif-summary-meta">
-      <span class="notif-summary-label">Llamadas</span>
-      <span class="notif-summary-desc">pendientes</span>
-    </div>
-  </div>
-  <div class="notif-summary-item">
     <div class="notif-summary-num">{{ appointments|length }}</div>
     <div class="notif-summary-meta">
       <span class="notif-summary-label">Citas</span>
@@ -290,68 +283,12 @@
   <div class="notif-section-head">
     <div class="notif-section-icon calls">📞</div>
     <div class="notif-section-title">Solicitudes de llamada</div>
-    <span class="notif-section-badge yellow">{{ call_requests|length }}</span>
   </div>
 
-  {% for c in call_requests %}
-    <div class="notif-call-item">
-      <div class="notif-item-title">
-        {{ c.get_call_type_display }}
-        <span class="notif-chip {% if c.status == 'pending' %}chip-pending{% elif c.status == 'approved' %}chip-approved{% else %}chip-rejected{% endif %}">
-          {{ c.get_status_display }}
-        </span>
-      </div>
-
-      {% if is_doctor %}
-        <div class="notif-item-meta">Paciente: {{ c.user.get_full_name|default:c.user.username }}</div>
-      {% else %}
-        {% if c.doctor %}<div class="notif-item-meta">Doctor: {{ c.doctor.get_full_name|default:c.doctor.username }}</div>{% endif %}
-      {% endif %}
-
-      {% if c.scheduled_for %}
-        <div class="notif-item-meta">🗓 Programada: {{ c.scheduled_for|date:"d M Y · H:i" }}</div>
-      {% endif %}
-
-      {% if c.notes %}
-        <div class="notif-item-notes">{{ c.notes }}</div>
-      {% endif %}
-
-      {% if is_doctor and c.status == 'pending' %}
-  <div class="notif-actions">
-
-    <form method="post"
-          action="{% url 'call_update_status' c.id 'approved' %}">
-      {% csrf_token %}
-      <button class="btn primary" type="submit">
-        Aceptar y entrar
-      </button>
-    </form>
-
-    <form method="post"
-          action="{% url 'call_update_status' c.id 'rejected' %}">
-      {% csrf_token %}
-      <button class="btn" type="submit">
-        Rechazar
-      </button>
-    </form>
-
+  <div class="notif-empty">
+    <div class="notif-empty-icon">📭</div>
+    La funcionalidad de llamadas está deshabilitada temporalmente.
   </div>
-{% endif %}
-
-{% if c.status == 'approved' or c.status == 'in_progress' %}
-  <div class="notif-actions">
-    <a class="btn primary" href="{% url 'call_room' c.id %}">
-      Entrar a sala
-    </a>
-  </div>
-{% endif %}
-    </div>
-  {% empty %}
-    <div class="notif-empty">
-      <div class="notif-empty-icon">📵</div>
-      Aún no tienes solicitudes.
-    </div>
-  {% endfor %}
 </div>
 
 

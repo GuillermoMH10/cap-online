@@ -1,26 +1,47 @@
+import json
+import logging
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User, Group
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Q
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
 from django.views.decorators.http import require_POST
-from django.contrib.auth.models import User
-from django.http import HttpResponse
 from django.utils import timezone
-from .models import SessionNote
-from .models import CallSignal
-from django.http import JsonResponse
-from .models import AuditLog
-import json
-from .models import ChatMessage, CallRequest, DoctorProfile, PatientProfile, Appointment, CallSignal
+from .models import SessionNote, CallSignal, AuditLog, ChatMessage, CallRequest, DoctorProfile, PatientProfile, Appointment
 from .forms import (
     DoctorCreateForm,
     DoctorProfileUpdateForm,
     PatientProfileUpdateForm,
     AppointmentCreateForm,
 )
+
+logger = logging.getLogger("portal")
+
+
+class LoggingPasswordResetView(auth_views.PasswordResetView):
+    def form_valid(self, form):
+        email = form.cleaned_data.get("email")
+        logger.info("Password reset request received for email=%s", email)
+        try:
+            response = super().form_valid(form)
+            logger.info(
+                "Password reset email sent/queued to=%s from=%s",
+                email,
+                settings.DEFAULT_FROM_EMAIL,
+            )
+            return response
+        except Exception:
+            logger.exception(
+                "Exception while sending password reset email for email=%s",
+                email,
+            )
+            raise
+
 
 
 def landing(request):
@@ -135,15 +156,19 @@ def _is_doctor(user: User) -> bool:
     return doctors_group in user.groups.all()
 
 
+def _calls_enabled() -> bool:
+    # Funcionalidad de videollamadas deshabilitada temporalmente.
+    # El código de backend permanece intacto para futura reactivación.
+    return False
+
+
 def _notifications_count(user: User) -> int:
     unread_messages_count = ChatMessage.objects.filter(receiver=user, is_read=False).count()
     if _is_doctor(user):
-        pending_calls_count = CallRequest.objects.filter(doctor=user, status="pending").count()
         pending_appts = Appointment.objects.filter(doctor=user, status="pending").count()
     else:
-        pending_calls_count = CallRequest.objects.filter(user=user, status="pending").count()
         pending_appts = Appointment.objects.filter(patient=user, status="pending").count()
-    return unread_messages_count + pending_calls_count + pending_appts
+    return unread_messages_count + pending_appts
 
 
 def _ensure_group(name: str) -> Group:
@@ -155,16 +180,13 @@ def _ensure_group(name: str) -> Group:
 def dashboard(request):
     unread_messages_count = ChatMessage.objects.filter(receiver=request.user, is_read=False).count()
     if _is_doctor(request.user):
-        pending_calls_count = CallRequest.objects.filter(doctor=request.user, status="pending").count()
         pending_appts_count = Appointment.objects.filter(doctor=request.user, status="pending").count()
     else:
-        pending_calls_count = CallRequest.objects.filter(user=request.user, status="pending").count()
         pending_appts_count = Appointment.objects.filter(patient=request.user, status="pending").count()
 
     ctx = {
         "notifications_count": _notifications_count(request.user),
         "unread_messages_count": unread_messages_count,
-        "pending_calls_count": pending_calls_count,
         "pending_appts_count": pending_appts_count,
         "is_doctor": _is_doctor(request.user),
     }
@@ -175,16 +197,13 @@ def dashboard(request):
 def notifications(request):
     unread = ChatMessage.objects.filter(receiver=request.user, is_read=False).order_by("-created_at")[:20]
     if _is_doctor(request.user):
-        calls = CallRequest.objects.filter(doctor=request.user).order_by("-created_at")[:20]
         appts = Appointment.objects.filter(doctor=request.user).order_by("-created_at")[:20]
     else:
-        calls = CallRequest.objects.filter(user=request.user).order_by("-created_at")[:20]
         appts = Appointment.objects.filter(patient=request.user).order_by("-created_at")[:20]
 
     ctx = {
         "notifications_count": _notifications_count(request.user),
         "unread_messages": unread,
-        "call_requests": calls,
         "appointments": appts,
         "is_doctor": _is_doctor(request.user),
     }
@@ -252,20 +271,8 @@ def calendar_doctor(request):
 
 @login_required(login_url="login")
 def calls(request):
-    if _is_doctor(request.user):
-        my_calls = CallRequest.objects.filter(doctor=request.user).select_related("user", "doctor")
-    else:
-        my_calls = CallRequest.objects.filter(user=request.user).select_related("user", "doctor")
-
-    ctx = {
-        "notifications_count": _notifications_count(request.user),
-        "my_calls": my_calls,
-        "is_doctor": _is_doctor(request.user),
-        "doctores": DoctorProfile.objects.filter(activo=True).select_related("user").order_by(
-            "user__first_name", "user__last_name"
-        ),
-    }
-    return render(request, "portal/calls.html", ctx)
+    # Vista de llamadas deshabilitada temporalmente.
+    return redirect("portal_dashboard")
 
 
 @login_required(login_url="login")
@@ -299,19 +306,8 @@ def chat(request, user_id=None):
 @login_required(login_url="login")
 @require_POST
 def call_signals_push(request,room_key: str): 
-
-    payload = json.loads(request.body.decode("utf-8"))
-
-    signal = CallSignal.objects.create(
-        room_key=room_key,
-        sender=request.user,
-        payload=payload
-    )
-
-    return JsonResponse({
-    "ok": True,
-    "id": signal.id
-    })
+    # API de señales deshabilitada temporalmente.
+    return JsonResponse({"ok": False, "message": "Funcionalidad de llamadas deshabilitada."}, status=404)
 
 @login_required(login_url="login")
 def send_message(request, user_id: int):
@@ -375,181 +371,34 @@ def chat_send_api(request, user_id: int):
 
 @login_required(login_url="login")
 def request_call(request):
-    if request.method != "POST":
-        return redirect("portal_calls")
-
-    call_type = request.POST.get("call_type", "audio")
-    doctor_id = request.POST.get("doctor_id")
-    notes = (request.POST.get("notes") or "").strip()
-
-    if call_type not in ("audio", "video"):
-        call_type = "audio"
-
-    doctor = None
-    if doctor_id:
-        try:
-            doctor = User.objects.get(pk=int(doctor_id), doctor_profile__activo=True)
-        except Exception:
-            doctor = None
-
-    if not doctor:
-        messages.error(request, "Selecciona un doctor válido.")
-        return redirect("portal_calls")
-
-    CallRequest.objects.create(
-        user=request.user,
-        doctor=doctor,
-        call_type=call_type,
-        notes=notes
-    )
-    messages.success(request, "Solicitud de llamada enviada.")
-    return redirect("portal_calls")
+    # Endpoint de llamadas deshabilitado temporalmente.
+    # Las rutas actuales están inactivas y esta vista ya no se utiliza desde la UI.
+    return redirect("portal_dashboard")
 
 
 @login_required(login_url="login")
 @require_POST
 def call_update_status(request, call_id: int, new_status: str):
-    call = get_object_or_404(CallRequest, pk=call_id)
-
-    if not _is_doctor(request.user) or call.doctor_id != request.user.id:
-        return HttpResponseBadRequest("No tienes permiso.")
-
-    if new_status not in ("approved", "rejected", "done", "cancelled"):
-        return HttpResponseBadRequest("Estado inválido.")
-
-    if new_status == "approved":
-        call.status = "in_progress"
-        call.started_at = timezone.now()
-        call.save(update_fields=["status", "started_at"])
-
-        # El doctor entra directamente a la sala.
-        return redirect("call_room", call_id=call.id)
-
-    if new_status == "rejected":
-        call.status = "rejected"
-        call.ended_at = timezone.now()
-        call.save(update_fields=["status", "ended_at"])
-        messages.success(request, "La llamada fue rechazada.")
-        return redirect("portal_calls")
-
-    if new_status == "done":
-        call.status = "done"
-        call.ended_at = timezone.now()
-        call.save(update_fields=["status", "ended_at"])
-        messages.success(request, "La llamada fue finalizada.")
-        return redirect("portal_calls")
-
-    call.status = "cancelled"
-    call.ended_at = timezone.now()
-    call.save(update_fields=["status", "ended_at"])
-    messages.success(request, "La llamada fue cancelada.")
-    return redirect("portal_calls")
+    # Endpoint de llamadas deshabilitado temporalmente.
+    return redirect("portal_dashboard")
 
 
 @login_required(login_url="login")
 def call_status_api(request):
-    if _is_doctor(request.user):
-        qs = CallRequest.objects.filter(doctor=request.user).select_related("user", "doctor").order_by("-created_at")
-    else:
-        qs = CallRequest.objects.filter(user=request.user).select_related("user", "doctor").order_by("-created_at")
-
-    items = []
-    for c in qs[:20]:
-        items.append({
-            "id": c.id,
-            "status": c.status,
-            "call_type": c.call_type,
-            "call_type_display": c.get_call_type_display(),
-            "created_at": c.created_at.strftime("%d/%m/%Y %H:%M"),
-            "notes": c.notes or "",
-            "user_name": c.user.get_full_name() or c.user.username,
-            "doctor_name": (c.doctor.get_full_name() or c.doctor.username) if c.doctor else "",
-           "room_url": (
-    f"/portal/call/{c.id}/room/"
-    if c.status in ("approved", "in_progress")
-    else ""
-),
-        })
-
-    return JsonResponse({
-        "ok": True,
-        "is_doctor": _is_doctor(request.user),
-        "calls": items,
-    })
+    # API de llamadas deshabilitada temporalmente.
+    return JsonResponse({"ok": False, "message": "Funcionalidad de llamadas deshabilitada."}, status=404)
 
 
 @login_required(login_url="login")
 def call_room(request, call_id: int):
-    call = get_object_or_404(CallRequest, pk=call_id)
-
-    if request.user.id not in (call.user_id, call.doctor_id):
-        return HttpResponseBadRequest("No autorizado")
-
-    if call.status not in ("approved", "in_progress"):
-        messages.error(request, "Esta llamada no está disponible.")
-        return redirect("portal_calls")
-
-    is_doctor = _is_doctor(request.user)
-
-    if is_doctor:
-        paciente = call.user
-    else:
-        paciente = request.user
-
-    if request.method == "POST" and is_doctor and paciente:
-        SessionNote.objects.create(
-            doctor=request.user,
-            patient=paciente,
-            titulo=request.POST.get("titulo"),
-            estado_emocional=request.POST.get("estado_emocional", ""),
-            observaciones=request.POST.get("observaciones"),
-            recomendaciones=request.POST.get("recomendaciones", ""),
-            proxima_sesion=request.POST.get("proxima_sesion") or None,
-        )
-
-        registrar_auditoria(
-            request,
-            "Guardó una nota clínica",
-            "Notas Clínicas"
-        )
-
-        messages.success(request, "Nota clínica guardada correctamente.")
-        return redirect("call_room", call_id=call.id)
-
-    ctx = {
-        "notifications_count": _notifications_count(request.user),
-        "call": call,
-        "room_key": f"call-{call.id}",
-        "is_doctor": is_doctor,
-        "paciente": paciente,
-    }
-
-    return render(request, "portal/call_room.html", ctx)
+    # Endpoint de sala de llamada deshabilitado temporalmente.
+    return redirect("portal_dashboard")
 
 
 @login_required(login_url="login")
 def call_signals_pull(request, room_key: str):
-
-    after = int(request.GET.get("after", "0"))
-
-    signals = CallSignal.objects.filter(
-        room_key=room_key,
-        id__gt=after
-    ).order_by("id")
-
-    data = []
-
-    for s in signals:
-        data.append({
-            "id": s.id,
-            "sender_id": s.sender_id,
-            "payload": s.payload,
-            "created_at": s.created_at.isoformat(),
-        })
-
-    return JsonResponse({
-        "signals": data
-    })
+    # API de señales deshabilitada temporalmente.
+    return JsonResponse({"ok": False, "message": "Funcionalidad de llamadas deshabilitada."}, status=404)
 
 
 @login_required(login_url="login")
