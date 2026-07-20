@@ -2,5 +2,5 @@ services:
   - type: web
     name: cap-online
     env: python
-    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --no-input"
-    startCommand: "python manage.py migrate && gunicorn cap_online.wsgi:application --bind 0.0.0.0:$PORT"
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn cap_online.wsgi:application --bind 0.0.0.0:$PORT"
