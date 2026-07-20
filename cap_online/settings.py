@@ -29,10 +29,12 @@ ALLOWED_HOSTS = [
     "192.168.0.9",
     "10.10.204.236",
     "cap-online.onrender.com",
+    "cap-online-ri67.onrender.com",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://cap-online.onrender.com",
+    "https://cap-online-ri67.onrender.com",
 ]
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
