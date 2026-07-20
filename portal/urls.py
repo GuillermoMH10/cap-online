@@ -58,4 +58,7 @@ urlpatterns = [
     path("portal/notas-clinicas/", views.mis_notas_clinicas, name="mis_notas_clinicas"),
     path("politica-privacidad/", views.politica_privacidad, name="politica_privacidad"),
 
+    # API: generar token de reset para EmailJS
+    path("api/password-reset/generate/", views.password_reset_generate, name="password_reset_generate"),
+
 ]

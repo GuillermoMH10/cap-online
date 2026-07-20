@@ -84,6 +84,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'portal.context_processors.emailjs_keys',
             ],
         },
     },
@@ -259,3 +260,8 @@ LOGGING = {
 AGORA_APP_ID = os.environ.get("AGORA_APP_ID", "")
 AGORA_TEMP_TOKEN = os.environ.get("AGORA_TEMP_TOKEN", "")
 AGORA_CHANNEL = os.environ.get("AGORA_CHANNEL", "cap-online")
+
+# EmailJS – para enviar emails de reset de contraseña desde el frontend
+EMAILJS_PUBLIC_KEY  = os.environ.get("EMAILJS_PUBLIC_KEY",  "")
+EMAILJS_SERVICE_ID  = os.environ.get("EMAILJS_SERVICE_ID",  "")
+EMAILJS_TEMPLATE_ID = os.environ.get("EMAILJS_TEMPLATE_ID", "")

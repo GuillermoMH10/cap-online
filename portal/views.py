@@ -7,9 +7,13 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User, Group
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from .models import SessionNote, CallSignal, AuditLog, ChatMessage, CallRequest, DoctorProfile, PatientProfile, Appointment
@@ -645,3 +649,47 @@ def registrar_auditoria(request, accion, modulo):
         modulo=modulo,
         ip=ip
     )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# API: Generar token de reset para EmailJS
+# El frontend llama a este endpoint, obtiene la URL de reset,
+# y luego EmailJS envía el email directamente desde el browser.
+# ──────────────────────────────────────────────────────────────────────────────
+@require_POST
+def password_reset_generate(request):
+    """Genera el enlace de restablecimiento y lo devuelve al frontend para que EmailJS lo envíe."""
+    try:
+        body = json.loads(request.body)
+        email = (body.get("email") or "").strip().lower()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({"ok": False, "error": "JSON inválido"}, status=400)
+
+    if not email:
+        return JsonResponse({"ok": False, "error": "Email requerido"}, status=400)
+
+    try:
+        user = User.objects.get(email__iexact=email)
+    except User.DoesNotExist:
+        # Siempre respondemos ok=True por seguridad (no revelar si el email existe)
+        return JsonResponse({"ok": True, "found": False})
+
+    # Generar token seguro de Django
+    uid   = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+
+    # Construir la URL de reset
+    protocol = "https"
+    domain   = request.get_host()
+    reset_url = f"{protocol}://{domain}/reset/{uid}/{token}/"
+
+    nombre = user.first_name or user.username
+
+    logger.info("[EmailJS] Reset link generado para user=%s", user.username)
+
+    return JsonResponse({
+        "ok": True,
+        "found": True,
+        "reset_url": reset_url,
+        "nombre": nombre,
+    })
