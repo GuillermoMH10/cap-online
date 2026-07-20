@@ -262,6 +262,6 @@ AGORA_TEMP_TOKEN = os.environ.get("AGORA_TEMP_TOKEN", "")
 AGORA_CHANNEL = os.environ.get("AGORA_CHANNEL", "cap-online")
 
 # EmailJS – para enviar emails de reset de contraseña desde el frontend
-EMAILJS_PUBLIC_KEY  = os.environ.get("EMAILJS_PUBLIC_KEY",  "")
-EMAILJS_SERVICE_ID  = os.environ.get("EMAILJS_SERVICE_ID",  "")
-EMAILJS_TEMPLATE_ID = os.environ.get("EMAILJS_TEMPLATE_ID", "")
+EMAILJS_PUBLIC_KEY  = os.environ.get("EMAILJS_PUBLIC_KEY",  "q2bawUSFByczMAn5H")
+EMAILJS_SERVICE_ID  = os.environ.get("EMAILJS_SERVICE_ID",  "service_0p9gbdn")
+EMAILJS_TEMPLATE_ID = os.environ.get("EMAILJS_TEMPLATE_ID", "template_bdlha9y")
