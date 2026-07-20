@@ -27,6 +27,11 @@ from .forms import (
 logger = logging.getLogger("portal")
 
 
+def password_reset_form_view(request):
+    """Renderiza el formulario de recuperación de contraseña con EmailJS."""
+    return render(request, "registration/password_reset_form.html")
+
+
 class LoggingPasswordResetView(auth_views.PasswordResetView):
     def form_valid(self, form):
         email = form.cleaned_data.get("email")
