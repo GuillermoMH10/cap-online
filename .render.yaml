@@ -3,4 +3,4 @@ services:
     name: cap-online
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn cap_online.wsgi:application --bind 0.0.0.0:$PORT
+    startCommand: bash -lc "python manage.py migrate && gunicorn cap_online.wsgi:application --bind 0.0.0.0:$PORT"
