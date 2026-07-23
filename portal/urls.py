@@ -54,7 +54,6 @@ urlpatterns = [
     # CITAS
     path("portal/appointment/create/", views.appointment_create, name="appointment_create"),
     path("portal/appointment/<int:appt_id>/status/<str:new_status>/", views.appointment_update_status, name="appointment_update_status"),
-    path("crear-admin/", views.crear_admin),
     path("portal/notas-clinicas/", views.mis_notas_clinicas, name="mis_notas_clinicas"),
     path("politica-privacidad/", views.politica_privacidad, name="politica_privacidad"),
 

@@ -11,5 +11,11 @@ INSTRUCCIONES RAPIDAS
 IMPORTANTE:
 - El login usa correo como username.
 - Para doctores creados en RH, el sistema guarda username=email automaticamente.
-- Si quieres entrar al admin, crea un superusuario con:
-  python manage.py createsuperuser
+- Para crear el administrador inicial de forma segura:
+   $env:ADMIN_USERNAME="admin"
+   $env:ADMIN_EMAIL="admin@cap.com"
+   $env:ADMIN_PASSWORD="tu-contraseña-segura"
+   python manage.py crear_admin
+
+   En Render configura esas tres variables y ejecuta el mismo comando desde
+   el Shell del servicio. No pongas la contraseña en el repositorio.

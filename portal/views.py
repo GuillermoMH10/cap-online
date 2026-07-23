@@ -558,15 +558,6 @@ def doctor_create(request):
     
     return render(request, "portal/rh/doctor_create.html", ctx)
     
-def crear_admin(request):
-    if not User.objects.filter(username="admin").exists():
-        User.objects.create_superuser(
-            username="admin",
-            email="admin@cap.com",
-            password="Admin12345!"
-        )
-        return HttpResponse("Admin creado correctamente")
-    return HttpResponse("El admin ya existe")
 #Nota
 @login_required(login_url="login")
 def mis_notas_clinicas(request):
