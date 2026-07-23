@@ -257,10 +257,16 @@ def calendar_patient(request):
     )
 
     appts = Appointment.objects.filter(patient=request.user).select_related("doctor")
+    doctores = (
+        DoctorProfile.objects.filter(activo=True)
+        .select_related("user")
+        .order_by("user__first_name", "user__last_name")
+    )
     ctx = {
         "notifications_count": _notifications_count(request.user),
         "form": form,
         "appointments": appts,
+        "doctores": doctores,
     }
     return render(request, "portal/calendar_patient.html", ctx)
 

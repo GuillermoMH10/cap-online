@@ -628,6 +628,10 @@
     <i class="ti ti-message-circle" style="font-size:20px" aria-hidden="true"></i>
     <span class="label">Chat</span>
   </a>
+  <a href="{% url 'portal_specialists' %}" class="{% if request.resolver_match.url_name == 'portal_specialists' %}active{% endif %}">
+    <i class="ti ti-user" style="font-size:20px" aria-hidden="true"></i>
+    <span class="label">Especialistas</span>
+  </a>
 {% if request.user.is_staff or request.user.doctorprofile %}
 <a href="{% url 'mis_notas_clinicas' %}" class="{% if request.resolver_match.url_name == 'mis_notas_clinicas' %}active{% endif %}">
   <i class="ti ti-clipboard-heart" aria-hidden="true"></i>
