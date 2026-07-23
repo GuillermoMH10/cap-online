@@ -200,7 +200,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 EMAIL_BACKEND = os.environ.get(
     "EMAIL_BACKEND",
-    "django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend",
+    "django.core.mail.backends.console.EmailBackend",
 )
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
@@ -220,14 +220,6 @@ if EMAIL_USE_TLS and EMAIL_USE_SSL:
     raise RuntimeError(
         "EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be True. "
         "Set only one of these values in Render environment variables."
-    )
-
-if EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend" and (
-    not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD
-):
-    raise RuntimeError(
-        "SMTP email backend configured but EMAIL_HOST_USER or EMAIL_HOST_PASSWORD is missing. "
-        "Set these environment variables in Render."
     )
 
 LOGGING = {
