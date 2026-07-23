@@ -20,8 +20,8 @@ RUN pip install -r requirements.txt
 # Copiar el proyecto
 COPY . .
 
-# Puerto de Django
-EXPOSE 8020
+# Puerto usado por Render (el valor real lo proporciona la variable PORT)
+EXPOSE 10000
 
-# Ejecutar Django
-CMD ["python","manage.py","runserver","0.0.0.0:8020"]
+# Ejecutar Gunicorn en el puerto asignado por Render
+CMD ["sh", "-c", "gunicorn cap_online.wsgi:application --bind 0.0.0.0:${PORT:-10000}"]
