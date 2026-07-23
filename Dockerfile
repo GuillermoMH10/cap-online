@@ -23,5 +23,6 @@ COPY . .
 # Puerto usado por Render (el valor real lo proporciona la variable PORT)
 EXPOSE 10000
 
-# Ejecutar Gunicorn en el puerto asignado por Render
-CMD ["sh", "-c", "gunicorn cap_online.wsgi:application --bind 0.0.0.0:${PORT:-10000}"]
+# Crear el administrador solo cuando Render haya configurado la contraseña
+# y después ejecutar Gunicorn en el puerto asignado.
+CMD ["sh", "-c", "if [ -n \"$ADMIN_PASSWORD\" ]; then python manage.py crear_admin; fi; exec gunicorn cap_online.wsgi:application --bind 0.0.0.0:${PORT:-10000}"]

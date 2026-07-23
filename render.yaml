@@ -3,4 +3,4 @@ services:
     name: cap-online
     env: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn cap_online.wsgi:application --bind 0.0.0.0:$PORT"
+    startCommand: "if [ -n \"$ADMIN_PASSWORD\" ]; then python manage.py crear_admin; fi; exec gunicorn cap_online.wsgi:application --bind 0.0.0.0:$PORT"
