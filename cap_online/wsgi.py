@@ -28,6 +28,10 @@ def _auto_setup():
         call_command('migrate', '--no-input', verbosity=1)
         print("[wsgi] Migraciones completadas.", flush=True)
 
+        if os.environ.get("ADMIN_PASSWORD"):
+            print("[wsgi] Aprovisionando administrador desde variables de entorno...", flush=True)
+            call_command("crear_admin", verbosity=1)
+
         print("[wsgi] Recopilando archivos estáticos...", flush=True)
         call_command('collectstatic', '--no-input', verbosity=0)
         print("[wsgi] Archivos estáticos listos.", flush=True)
