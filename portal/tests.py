@@ -25,6 +25,19 @@ class PasswordResetFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Recuperar contraseña")
 
+    def test_password_reset_generate_returns_local_reset_url(self):
+        response = self.client.post(
+            reverse("password_reset_generate"),
+            data={"email": self.email},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["found"])
+        self.assertTrue(payload["reset_url"].startswith("http://testserver/reset/"))
+
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_password_reset_email_is_sent_for_registered_user(self):
         response = self.client.post(reverse("password_reset"), {"email": self.email})

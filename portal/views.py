@@ -684,7 +684,7 @@ def password_reset_generate(request):
     token = default_token_generator.make_token(user)
 
     # Construir la URL de reset
-    protocol = "https"
+    protocol = "https" if request.is_secure() else "http"
     domain   = request.get_host()
     reset_url = f"{protocol}://{domain}/reset/{uid}/{token}/"
 
